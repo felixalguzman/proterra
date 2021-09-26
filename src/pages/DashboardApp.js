@@ -1,5 +1,6 @@
 // material
-import { Box, Grid, Container, Typography } from '@mui/material';
+import { Box, Grid, Container, Typography, Button } from '@mui/material';
+import { useState } from 'react';
 // components
 import Page from '../components/Page';
 import {
@@ -18,13 +19,21 @@ import {
 } from '../components/_dashboard/app';
 
 // ----------------------------------------------------------------------
+import { getLocation, precipitation } from '../utils/helpers';
 
 export default function DashboardApp() {
+  useState(() => {
+    getLocation();
+  });
+
   return (
     <Page title="ProTerra | Cuida del agua">
       <Container maxWidth="xl">
         <Box sx={{ pb: 5 }}>
           <Typography variant="h4">¡Bienvenid@!</Typography>
+          <Button onClick={(e) => precipitation()} variant="contained">
+            Buscar{' '}
+          </Button>
         </Box>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>

@@ -1,16 +1,17 @@
 import * as moment from 'moment';
-
+// https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=19.478969&lon=-70.695968&altitude=4150
 // cropPhases = {
 //     inicial: {
 //         kc: 12,
 //         days: 9
 //     }, ...
 // }
-export function waterNeeds(cropPhases, cropPeriod, sowingDate, rainResponse) {
+
+let latitude;
+let longitude;
+export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
   const totalNeeds = 0;
-  const { inicial, desarrollo, medio, final } = cropPhases;
   const today = moment();
-  const sowingDateMoment = moment(sowingDate);
   const initialDay = today;
   const rain = {
     inicial: 0,
@@ -19,6 +20,41 @@ export function waterNeeds(cropPhases, cropPeriod, sowingDate, rainResponse) {
     final: 0,
     total: 0
   };
+
+  const { /* inicial, desarrollo, medio, final, */ currentPeriod, missingDays } = etapa(
+    cropPhases,
+    cropPeriod,
+    sowingDate
+  );
+
+  // mm of rain
+  let i = initialDay;
+  while (i <= moment(initialDay).add(missingDays, 'd')) {
+    const waterRain = 0;
+    rainResponse.forEach((dailyForescast) => {
+      // if (dailyForescast.dt == i) {
+      //   waterRain = dailyForescast.rain; // changes with the api
+      // }
+    });
+
+    rain[currentPeriod] = waterRain;
+    rain.total += waterRain;
+
+    const nextDay = moment(i).add(1, 'day');
+    i = nextDay;
+  }
+
+  // crop's evapotranspiration
+
+  return { totalNeeds, rain };
+}
+
+function etapa(cropPhases, cropPeriod, sowingDate) {
+  const { inicial, desarrollo, medio, final } = cropPhases;
+  const today = moment();
+
+  const sowingDateMoment = moment(sowingDate);
+
   let missingDays = cropPeriod;
   let currentPeriod = 'inicial';
 
@@ -52,26 +88,74 @@ export function waterNeeds(cropPhases, cropPeriod, sowingDate, rainResponse) {
     }
   }
 
-  // mm of rain
-  let i = initialDay;
-  while (i <= moment(initialDay).add(missingDays, 'd')) {
-    let waterRain = 0;
-    rainResponse.forEach((dailyForescast) => {
-      if (dailyForescast.dt == i) {
-        waterRain = dailyForescast.rain; // changes with the api
-        break;
-      }
-    });
+  return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
+}
 
-    rain[currentPeriod] = waterRain;
-    rain.total += waterRain;
+export function precipitation() {
+  // https://api.met.no/weatherapi/locationforecast/2.0/complete?
 
-    const nextDay = moment(i).add(1, 'day');
-    i = nextDay;
+  if (latitude && longitude) {
+    fetch(
+      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${latitude}&lon=${longitude}`
+    )
+      .then((response) => response.json())
+      .then((response) => {
+        const timeSeriesData = response.properties.timeseries;
+        const groups = timeSeriesData.reduce((acc, currentDate) => {
+          // create a composed key: 'year-week'
+          const date = `${moment(currentDate).format('L')}`;
+
+          // add this key as a property to the result object
+          if (!acc[date]) {
+            acc[date] = { precipitation: 0 };
+          }
+
+          const currentPrecipitation =
+            acc[date].precipitation +
+            (currentDate.data.next_1_hours
+              ? currentDate.data.next_1_hours.details.precipitation_amount
+              : 0);
+          // push the current date that belongs to the year-week calculated befor
+          acc[date].precipitation = currentPrecipitation;
+
+          return acc;
+        }, {});
+
+        console.log(groups);
+      });
   }
+}
 
-  // crop's evapotranspiration
-  
+function errors(err) {
+  console.warn(`ERROR(${err.code}): ${err.message}`);
+}
 
-  return { totalNeeds, rain };
+function getCoords(pos) {
+  const crd = pos.coords;
+
+  console.log(`More or less ${crd.accuracy} meters.`);
+
+  latitude = crd.latitude;
+  longitude = crd.longitude;
+}
+
+export function getLocation() {
+  if (navigator.geolocation) {
+    navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+      if (result.state === 'granted') {
+        console.log(result.state);
+        // If granted then you can directly call your function here
+        navigator.geolocation.getCurrentPosition(getCoords);
+      } /* else if (result.state === 'prompt') {
+        navigator.geolocation.getCurrentPosition(success, errors);
+      } else if (result.state === 'denied') {
+        // If denied then you have to show instructions to enable location
+      } */
+      result.onchange = function () {
+        console.log(result.state);
+      };
+    });
+  } else {
+    alert('Sorry Not available!');
+  }
 }
