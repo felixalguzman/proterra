@@ -102,10 +102,10 @@ export function precipitation() {
       .then((response) => {
         const timeSeriesData = response.properties.timeseries;
         const groups = timeSeriesData.reduce((acc, currentDate) => {
-          // create a composed key: 'year-week'
-          const date = `${moment(currentDate).format('L')}`;
+          // Usar fecha como llave
+          const date = `${moment(currentDate.time).format('L')}`;
 
-          // add this key as a property to the result object
+          // Inicializar campos vacios
           if (!acc[date]) {
             acc[date] = { precipitation: 0 };
           }
@@ -115,8 +115,9 @@ export function precipitation() {
             (currentDate.data.next_1_hours
               ? currentDate.data.next_1_hours.details.precipitation_amount
               : 0);
-          // push the current date that belongs to the year-week calculated befor
-          acc[date].precipitation = currentPrecipitation;
+
+          // Asignar valor
+          acc[date] = { precipitation: currentPrecipitation };
 
           return acc;
         }, {});
