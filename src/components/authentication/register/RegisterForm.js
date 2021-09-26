@@ -6,14 +6,17 @@ import eyeFill from '@iconify/icons-eva/eye-fill';
 import eyeOffFill from '@iconify/icons-eva/eye-off-fill';
 import { useNavigate } from 'react-router-dom';
 // material
-import { Stack, TextField, IconButton, InputAdornment } from '@mui/material';
+import { Stack, TextField, IconButton, InputAdornment, Alert, AlertTitle } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 
 // ----------------------------------------------------------------------
+import { supabase } from '../../../supabaseConfig';
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState(null);
+  const [isLoading, setLoading] = useState(false);
 
   const RegisterSchema = Yup.object().shape({
     firstName: Yup.string()
@@ -22,7 +25,7 @@ export default function RegisterForm() {
       .required('First name required'),
     lastName: Yup.string().min(2, 'Too Short!').max(50, 'Too Long!').required('Last name required'),
     email: Yup.string().email('Email must be a valid email address').required('Email is required'),
-    password: Yup.string().required('Password is required')
+    password: Yup.string().min(6, 'Password  too short').required('Password is required')
   });
 
   const formik = useFormik({
@@ -33,12 +36,24 @@ export default function RegisterForm() {
       password: ''
     },
     validationSchema: RegisterSchema,
-    onSubmit: () => {
-      navigate('/dashboard', { replace: true });
+    onSubmit: (form) => {
+      setLoginError(null);
+
+      setLoading(true);
+      register(form.email, form.password);
+      setLoading(false);
     }
   });
 
-  const { errors, touched, handleSubmit, isSubmitting, getFieldProps } = formik;
+  const register = async (email, password) => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setLoginError(error.message);
+    }
+    // setErrors(errors);
+  };
+
+  const { errors, touched, handleSubmit, getFieldProps } = formik;
 
   return (
     <FormikProvider value={formik}>
@@ -96,10 +111,17 @@ export default function RegisterForm() {
             size="large"
             type="submit"
             variant="contained"
-            loading={isSubmitting}
+            loading={isLoading}
           >
             Register
           </LoadingButton>
+
+          {loginError && (
+            <Alert severity="error">
+              <AlertTitle>Error</AlertTitle>
+              {loginError}
+            </Alert>
+          )}
         </Stack>
       </Form>
     </FormikProvider>
