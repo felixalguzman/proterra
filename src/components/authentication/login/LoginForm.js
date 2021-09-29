@@ -5,6 +5,7 @@ import { useFormik, Form, FormikProvider } from 'formik';
 import { Icon } from '@iconify/react';
 import eyeFill from '@iconify/icons-eva/eye-fill';
 import eyeOffFill from '@iconify/icons-eva/eye-off-fill';
+
 // material
 import {
   Link,
@@ -13,15 +14,20 @@ import {
   TextField,
   IconButton,
   InputAdornment,
-  FormControlLabel
+  FormControlLabel,
+  Alert,
+  AlertTitle
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
+import { supabase } from '../../../supabaseConfig';
 
 // ----------------------------------------------------------------------
 
 export default function LoginForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState(null);
+  const [isLoading, setLoading] = useState(false);
 
   const LoginSchema = Yup.object().shape({
     email: Yup.string().email('Email must be a valid email address').required('Email is required'),
@@ -35,10 +41,23 @@ export default function LoginForm() {
       remember: true
     },
     validationSchema: LoginSchema,
-    onSubmit: () => {
-      navigate('/dashboard', { replace: true });
+    onSubmit: (form) => {
+      setLoginError(null);
+
+      setLoading(true);
+      handleLogin(form.email, form.password);
     }
   });
+
+  const handleLogin = async (email, pass) => {
+    const { error } = await supabase.auth.signIn({ email, password: pass });
+    if (error) {
+      setLoginError(error.message);
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
+    setLoading(false);
+  };
 
   const { errors, touched, values, isSubmitting, handleSubmit, getFieldProps } = formik;
 
@@ -91,15 +110,16 @@ export default function LoginForm() {
           </Link>
         </Stack>
 
-        <LoadingButton
-          fullWidth
-          size="large"
-          type="submit"
-          variant="contained"
-          loading={isSubmitting}
-        >
+        <LoadingButton fullWidth size="large" type="submit" variant="contained" loading={isLoading}>
           Login
         </LoadingButton>
+
+        {loginError && (
+          <Alert severity="error">
+            <AlertTitle>Error</AlertTitle>
+            {loginError}
+          </Alert>
+        )}
       </Form>
     </FormikProvider>
   );
