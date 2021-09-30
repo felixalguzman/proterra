@@ -90,17 +90,56 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
 
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
+const delay = (millis) =>
+  new Promise((resolve, reject) => {
+    setTimeout((_) => resolve(), millis);
+  });
 
-export function precipitation() {
+export function getData(period) {
+  const { days, start } = period;
+
+  const data = [];
+
+  for (let index = 1; index <= 2; index += 1) {
+    const oldStart = moment(start).add(-index, 'year');
+
+    const lastYearData = precipitation(oldStart.format());
+    if (lastYearData) data.push(lastYearData);
+
+    const daysToAdd = Math.ceil(days / 10);
+
+    for (let daysIndex = 0; daysIndex < daysToAdd; daysIndex += 1) {
+      const daysT = daysIndex * 10 + 10;
+      const startWithDays = oldStart.add(daysT, 'days');
+
+      const nextDaysData = precipitation(startWithDays.format());
+
+      if (nextDaysData) data.push(nextDaysData);
+    }
+  }
+
+  console.log(data);
+}
+
+export async function precipitation(start) {
   // https://api.met.no/weatherapi/locationforecast/2.0/complete?
 
+  let data;
+  await delay(2000);
+
   if (latitude && longitude) {
-    fetch(
-      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${latitude}&lon=${longitude}`
+    await fetch(
+      // `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${latitude}&lon=${longitude}`
+      `https://api.stormglass.io/v2/weather/point?lat=${latitude}&lng=${longitude}&start=${start}&params=windSpeed,airTemperature,precipitation,humidity,currentSpeed&source=sg`,
+      {
+        headers: {
+          Authorization: '22348f6a-1e71-11ec-8169-0242ac130002-22349014-1e71-11ec-8169-0242ac130002'
+        }
+      }
     )
       .then((response) => response.json())
       .then((response) => {
-        const timeSeriesData = response.properties.timeseries;
+        const timeSeriesData = response.hours;
         const groups = timeSeriesData.reduce((acc, currentDate) => {
           // Usar fecha como llave
           const date = `${moment(currentDate.time).format('L')}`;
@@ -111,10 +150,9 @@ export function precipitation() {
           }
 
           const currentPrecipitation =
-            acc[date].precipitation +
-            (currentDate.data.next_1_hours
-              ? currentDate.data.next_1_hours.details.precipitation_amount
-              : 0);
+            acc[date].precipitation + currentDate.precipitation.sg
+              ? currentDate.precipitation.sg
+              : 0;
 
           // Asignar valor
           acc[date] = { precipitation: currentPrecipitation };
@@ -122,8 +160,9 @@ export function precipitation() {
           return acc;
         }, {});
 
-        console.log(groups);
+        data = groups;
       });
+    return data;
   }
 }
 
