@@ -32,8 +32,25 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
   return { totalNeeds, rain };
 }
 
-function evotranspiration(cultivo, dateStart, dateEnd) {
-  // Constantes: KC
+function evotranspiration(cultivo, dateStart, dateEnd, kc) {
+  const etos = [];
+
+  const start = moment(dateStart);
+  const end = moment(dateEnd);
+  // Calcular eto
+  while (start <= end) {
+    // en la bd buscar tMax, tMin, tMedia
+    const eto = 0.0023 * (1 + 17.8) * 1 * (1 * -1) ** 0.5;
+    etos.push({ eto, day: start.format('L') });
+
+    start.add(1, 'days');
+  }
+  const sum = etos.reduce((a, b) => a + b.eto, 0);
+  const avg = sum / etos.length || 0;
+  const daysDiff = moment(dateStart).diff(dateEnd, 'days');
+
+  const response = { etos, evo: avg * daysDiff * kc };
+  return response;
 }
 
 function periodoPorLluvia(cultivo) {
