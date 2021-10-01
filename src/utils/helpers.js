@@ -91,44 +91,52 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
 const delay = (millis) =>
-  new Promise((resolve, reject) => {
+  new Promise((resolve) => {
     setTimeout((_) => resolve(), millis);
   });
 
-export function getData(period) {
+export async function getData(period) {
   const { days, start } = period;
 
   const data = [];
 
+  /* eslint-disable no-await-in-loop */
   for (let index = 1; index <= 2; index += 1) {
     const oldStart = moment(start).add(-index, 'year');
 
-    const lastYearData = precipitation(oldStart.format());
+    const lastYearData = await precipitation(oldStart.format());
+    await sleep(2000);
+
     if (lastYearData) data.push(lastYearData);
 
     const daysToAdd = Math.ceil(days / 10);
 
+    /* eslint-disable no-await-in-loop */
     for (let daysIndex = 0; daysIndex < daysToAdd; daysIndex += 1) {
       const daysT = daysIndex * 10 + 10;
       const startWithDays = oldStart.add(daysT, 'days');
 
-      const nextDaysData = precipitation(startWithDays.format());
+      const res = await precipitation(startWithDays.format());
 
-      if (nextDaysData) data.push(nextDaysData);
+      if (res) data.push(res);
+      await sleep(2000);
     }
   }
 
   console.log(data);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function precipitation(start) {
   // https://api.met.no/weatherapi/locationforecast/2.0/complete?
 
   let data;
-  await delay(2000);
 
   if (latitude && longitude) {
-    await fetch(
+    const response = await fetch(
       // `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${latitude}&lon=${longitude}`
       `https://api.stormglass.io/v2/weather/point?lat=${latitude}&lng=${longitude}&start=${start}&params=windSpeed,airTemperature,precipitation,humidity,currentSpeed&source=sg`,
       {
@@ -136,34 +144,38 @@ export async function precipitation(start) {
           Authorization: '22348f6a-1e71-11ec-8169-0242ac130002-22349014-1e71-11ec-8169-0242ac130002'
         }
       }
-    )
-      .then((response) => response.json())
-      .then((response) => {
-        const timeSeriesData = response.hours;
-        const groups = timeSeriesData.reduce((acc, currentDate) => {
-          // Usar fecha como llave
-          const date = `${moment(currentDate.time).format('L')}`;
+    );
 
-          // Inicializar campos vacios
-          if (!acc[date]) {
-            acc[date] = { precipitation: 0 };
-          }
+    const json = await response.json();
 
-          const currentPrecipitation =
-            acc[date].precipitation + currentDate.precipitation.sg
-              ? currentDate.precipitation.sg
-              : 0;
+    // Si se pasa de la cuota u otro error
+    if (json.errors) return null;
 
-          // Asignar valor
-          acc[date] = { precipitation: currentPrecipitation };
+    const timeSeriesData = json.hours;
+    const groups = timeSeriesData.reduce((acc, currentDate) => {
+      // Usar fecha como llave
+      const date = `${moment(currentDate.time).format('L')}`;
 
-          return acc;
-        }, {});
+      // Inicializar campos vacios
+      if (!acc[date]) {
+        acc[date] = { precipitation: 0 };
+      }
 
-        data = groups;
-      });
+      const currentPrecipitation =
+        acc[date].precipitation + currentDate.precipitation ? currentDate.precipitation.sg : 0;
+
+      // Asignar valor
+      acc[date] = { precipitation: currentPrecipitation };
+
+      return acc;
+    }, {});
+
+    data = groups;
+
     return data;
   }
+
+  return null;
 }
 
 function errors(err) {
