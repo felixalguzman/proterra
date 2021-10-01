@@ -27,26 +27,48 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
     sowingDate
   );
 
-  // mm of rain
-  let i = initialDay;
-  while (i <= moment(initialDay).add(missingDays, 'd')) {
-    const waterRain = 0;
-    rainResponse.forEach((dailyForescast) => {
-      // if (dailyForescast.dt == i) {
-      //   waterRain = dailyForescast.rain; // changes with the api
-      // }
-    });
-
-    rain[currentPeriod] = waterRain;
-    rain.total += waterRain;
-
-    const nextDay = moment(i).add(1, 'day');
-    i = nextDay;
-  }
-
   // crop's evapotranspiration
 
   return { totalNeeds, rain };
+}
+
+function evotranspiration(cultivo, dateStart, dateEnd) {
+  // Constantes: KC
+}
+
+function periodoPorLluvia(cultivo) {
+  const { datePlanted, daysToFinish } = cultivo;
+
+  const dateStarted = moment(datePlanted);
+  const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
+}
+
+export function calculateEtapa(cultivo) {
+  const { cropPhases, datePlanted } = cultivo;
+
+  const { inicial, desarrollo, medio, final } = cropPhases;
+
+  const etapaDays = [
+    { etapa: 'inicial', dias: inicial.days },
+    { etapa: 'desarrollo', dias: desarrollo.days },
+    { etapa: 'medio', dias: medio.days },
+    { etapa: 'final', dias: final.days }
+  ];
+
+  const dateStart = moment(datePlanted);
+  const etapas = [];
+
+  for (let index = 0; index < etapaDays.length; index += 1) {
+    const { etapa, dias } = etapaDays[index];
+
+    const dateEnd = moment(dateStart).add(dias, 'days');
+    etapas.push({ etapa, dias, dateStart: dateStart.format('L'), dateEnd: dateEnd.format('L') });
+
+    dateStart.add(dias, 'days');
+    dateStart.add(1, 'days');
+  }
+
+  return etapas;
 }
 
 function etapa(cropPhases, cropPeriod, sowingDate) {

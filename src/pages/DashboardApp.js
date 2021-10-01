@@ -19,7 +19,7 @@ import {
 } from '../components/_dashboard/app';
 
 // ----------------------------------------------------------------------
-import { getLocation, getData } from '../utils/helpers';
+import { getLocation, calculateEtapa } from '../utils/helpers';
 
 export default function DashboardApp() {
   useState(() => {
@@ -33,7 +33,16 @@ export default function DashboardApp() {
           <Typography variant="h4">¡Bienvenid@!</Typography>
           <Button
             onClick={
-              (e) => getData({ days: 25, start: '2021-09-29' }) /* precipitation('2021-09-29') */
+              (e) =>
+                calculateEtapa({
+                  datePlanted: '2021-09-29',
+                  cropPhases: {
+                    inicial: { days: 10 },
+                    desarrollo: { days: 7 },
+                    medio: { days: 5 },
+                    final: { days: 4 }
+                  }
+                }) /* precipitation('2021-09-29') */
             }
             variant="contained"
           >
