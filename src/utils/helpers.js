@@ -32,7 +32,48 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
   return { totalNeeds, rain };
 }
 
-function evotranspiration(cultivo, dateStart, dateEnd, kc) {
+function littersQuantity(cultivo, etapa) {
+  const evo = evoTPorEtapa(cultivo).find((x) => x.etapa === etapa);
+  let addition = 0;
+  if (evo) {
+    const missingLitters = evo.etc * cultivo.area;
+    if (cultivo.irrigationType === 'Aspersión') addition = 0.3;
+    else if (cultivo.irrigationType === 'Microaspersión') addition = 0.15;
+    else addition = 0.1;
+
+    // Hay que guardarlo
+    const litterRes = missingLitters + missingLitters * addition;
+
+    if (addition === 'Goteo') {
+      // todo por preguntar
+    } else {
+      // Litros por minutos
+      const irrigation = cultivo.area / 36;
+      const littersCapacity = irrigation * 1000;
+      const time = litterRes / littersCapacity;
+    }
+  }
+}
+
+function evoTPorEtapa(cultivo) {
+  const etapas = calculateEtapa(cultivo);
+  const lluvias = periodoPorLluvia(cultivo);
+  const result = [];
+
+  for (let index = 0; index < etapas.length; index += 1) {
+    const etapa = etapas[index];
+
+    const prep = lluvias[etapa.etapa];
+    const lluvia = prep.data.reduce((a, b) => a + b, 0);
+
+    const evoT = evotranspiration(cultivo, etapa.dateStart, etapa.dateEnd);
+    result.push({ etc: evoT - lluvia, etapa });
+  }
+
+  return result;
+}
+
+function evotranspiration(cultivo, dateStart, dateEnd) {
   const etos = [];
 
   const start = moment(dateStart);
@@ -49,14 +90,14 @@ function evotranspiration(cultivo, dateStart, dateEnd, kc) {
   const avg = sum / etos.length || 0;
   const daysDiff = moment(dateStart).diff(dateEnd, 'days');
 
-  const response = { etos, evo: avg * daysDiff * kc };
+  const response = { etos, evo: avg * daysDiff * cultivo.kc };
   return response;
 }
 
 function periodoPorLluvia(cultivo) {
   const { datePlanted, daysToFinish } = cultivo;
 
-  // hay que buscar en la base de datos
+  // hay que buscar en la base de datos, el PROMEDIO
   const dateStarted = moment(datePlanted);
   const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
 
@@ -153,10 +194,6 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
 
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
-const delay = (millis) =>
-  new Promise((resolve) => {
-    setTimeout((_) => resolve(), millis);
-  });
 
 export async function getData(period) {
   const { days, start } = period;
