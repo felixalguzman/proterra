@@ -56,8 +56,32 @@ function evotranspiration(cultivo, dateStart, dateEnd, kc) {
 function periodoPorLluvia(cultivo) {
   const { datePlanted, daysToFinish } = cultivo;
 
+  // hay que buscar en la base de datos
   const dateStarted = moment(datePlanted);
   const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
+
+  const etapas = calculateEtapa(cultivo);
+
+  const precipitations = [];
+  const result = [];
+
+  for (let index = 0; index < precipitations.length; index += 1) {
+    const element = precipitations[index];
+
+    const etapa = etapas.find((etapa) =>
+      moment(element.date).isBetween(etapa.dateStart, etapa.dateEnd)
+    );
+
+    if (etapa) {
+      if (!result[etapa.etapa]) {
+        result[etapa.etapa] = { etapa, data: [] };
+      }
+
+      result[etapa.etapa].data.push(element);
+    }
+  }
+
+  return result;
 }
 
 export function calculateEtapa(cultivo) {
