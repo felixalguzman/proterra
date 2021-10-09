@@ -27,26 +27,130 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
     sowingDate
   );
 
-  // mm of rain
-  let i = initialDay;
-  while (i <= moment(initialDay).add(missingDays, 'd')) {
-    const waterRain = 0;
-    rainResponse.forEach((dailyForescast) => {
-      // if (dailyForescast.dt == i) {
-      //   waterRain = dailyForescast.rain; // changes with the api
-      // }
-    });
-
-    rain[currentPeriod] = waterRain;
-    rain.total += waterRain;
-
-    const nextDay = moment(i).add(1, 'day');
-    i = nextDay;
-  }
-
   // crop's evapotranspiration
 
   return { totalNeeds, rain };
+}
+
+function littersQuantity(cultivo, etapa) {
+  const evo = evoTPorEtapa(cultivo).find((x) => x.etapa === etapa);
+  let addition = 0;
+  if (evo) {
+    const missingLitters = evo.etc * cultivo.area;
+    if (cultivo.irrigationType === 'Aspersión') addition = 0.3;
+    else if (cultivo.irrigationType === 'Microaspersión') addition = 0.15;
+    else addition = 0.1;
+
+    // Hay que guardarlo
+    const litterRes = missingLitters + missingLitters * addition;
+
+    if (addition === 'Goteo') {
+      // todo por preguntar
+    } else {
+      // Litros por minutos
+      const irrigation = cultivo.area / 36;
+      const littersCapacity = irrigation * 1000;
+      const time = litterRes / littersCapacity;
+    }
+  }
+}
+
+function evoTPorEtapa(cultivo) {
+  const etapas = calculateEtapa(cultivo);
+  const lluvias = periodoPorLluvia(cultivo);
+  const result = [];
+
+  for (let index = 0; index < etapas.length; index += 1) {
+    const etapa = etapas[index];
+
+    const prep = lluvias[etapa.etapa];
+    const lluvia = prep.data.reduce((a, b) => a + b, 0);
+
+    const evoT = evotranspiration(cultivo, etapa.dateStart, etapa.dateEnd);
+    result.push({ etc: evoT - lluvia, etapa });
+  }
+
+  return result;
+}
+
+function evotranspiration(cultivo, dateStart, dateEnd) {
+  const etos = [];
+
+  const start = moment(dateStart);
+  const end = moment(dateEnd);
+  // Calcular eto
+  while (start <= end) {
+    // en la bd buscar tMax, tMin, tMedia
+    const eto = 0.0023 * (1 + 17.8) * 1 * (1 * -1) ** 0.5;
+    etos.push({ eto, day: start.format('L') });
+
+    start.add(1, 'days');
+  }
+  const sum = etos.reduce((a, b) => a + b.eto, 0);
+  const avg = sum / etos.length || 0;
+  const daysDiff = moment(dateStart).diff(dateEnd, 'days');
+
+  const response = { etos, evo: avg * daysDiff * cultivo.kc };
+  return response;
+}
+
+function periodoPorLluvia(cultivo) {
+  const { datePlanted, daysToFinish } = cultivo;
+
+  // hay que buscar en la base de datos, el PROMEDIO
+  const dateStarted = moment(datePlanted);
+  const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
+
+  const etapas = calculateEtapa(cultivo);
+
+  const precipitations = [];
+  const result = [];
+
+  for (let index = 0; index < precipitations.length; index += 1) {
+    const element = precipitations[index];
+
+    const etapa = etapas.find((etapa) =>
+      moment(element.date).isBetween(etapa.dateStart, etapa.dateEnd)
+    );
+
+    if (etapa) {
+      if (!result[etapa.etapa]) {
+        result[etapa.etapa] = { etapa, data: [] };
+      }
+
+      result[etapa.etapa].data.push(element);
+    }
+  }
+
+  return result;
+}
+
+export function calculateEtapa(cultivo) {
+  const { cropPhases, datePlanted } = cultivo;
+
+  const { inicial, desarrollo, medio, final } = cropPhases;
+
+  const etapaDays = [
+    { etapa: 'inicial', dias: inicial.days },
+    { etapa: 'desarrollo', dias: desarrollo.days },
+    { etapa: 'medio', dias: medio.days },
+    { etapa: 'final', dias: final.days }
+  ];
+
+  const dateStart = moment(datePlanted);
+  const etapas = [];
+
+  for (let index = 0; index < etapaDays.length; index += 1) {
+    const { etapa, dias } = etapaDays[index];
+
+    const dateEnd = moment(dateStart).add(dias, 'days');
+    etapas.push({ etapa, dias, dateStart: dateStart.format('L'), dateEnd: dateEnd.format('L') });
+
+    dateStart.add(dias, 'days');
+    dateStart.add(1, 'days');
+  }
+
+  return etapas;
 }
 
 function etapa(cropPhases, cropPeriod, sowingDate) {
@@ -91,40 +195,87 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
 
-export function precipitation() {
+export async function getData(period) {
+  const { days, start } = period;
+
+  const data = [];
+
+  /* eslint-disable no-await-in-loop */
+  for (let index = 1; index <= 2; index += 1) {
+    const oldStart = moment(start).add(-index, 'year');
+
+    const lastYearData = await precipitation(oldStart.format());
+    await sleep(2000);
+
+    if (lastYearData) data.push(lastYearData);
+
+    const daysToAdd = Math.ceil(days / 10);
+
+    /* eslint-disable no-await-in-loop */
+    for (let daysIndex = 0; daysIndex < daysToAdd; daysIndex += 1) {
+      const daysT = daysIndex * 10 + 10;
+      const startWithDays = oldStart.add(daysT, 'days');
+
+      const res = await precipitation(startWithDays.format());
+
+      if (res) data.push(res);
+      await sleep(2000);
+    }
+  }
+
+  console.log(data);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function precipitation(start) {
   // https://api.met.no/weatherapi/locationforecast/2.0/complete?
 
+  let data;
+
   if (latitude && longitude) {
-    fetch(
-      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${latitude}&lon=${longitude}`
-    )
-      .then((response) => response.json())
-      .then((response) => {
-        const timeSeriesData = response.properties.timeseries;
-        const groups = timeSeriesData.reduce((acc, currentDate) => {
-          // Usar fecha como llave
-          const date = `${moment(currentDate.time).format('L')}`;
+    const response = await fetch(
+      // `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${latitude}&lon=${longitude}`
+      `https://api.stormglass.io/v2/weather/point?lat=${latitude}&lng=${longitude}&start=${start}&params=windSpeed,airTemperature,precipitation,humidity,currentSpeed&source=sg`,
+      {
+        headers: {
+          Authorization: '22348f6a-1e71-11ec-8169-0242ac130002-22349014-1e71-11ec-8169-0242ac130002'
+        }
+      }
+    );
 
-          // Inicializar campos vacios
-          if (!acc[date]) {
-            acc[date] = { precipitation: 0 };
-          }
+    const json = await response.json();
 
-          const currentPrecipitation =
-            acc[date].precipitation +
-            (currentDate.data.next_1_hours
-              ? currentDate.data.next_1_hours.details.precipitation_amount
-              : 0);
+    // Si se pasa de la cuota u otro error
+    if (json.errors) return null;
 
-          // Asignar valor
-          acc[date] = { precipitation: currentPrecipitation };
+    const timeSeriesData = json.hours;
+    const groups = timeSeriesData.reduce((acc, currentDate) => {
+      // Usar fecha como llave
+      const date = `${moment(currentDate.time).format('L')}`;
 
-          return acc;
-        }, {});
+      // Inicializar campos vacios
+      if (!acc[date]) {
+        acc[date] = { precipitation: 0 };
+      }
 
-        console.log(groups);
-      });
+      const currentPrecipitation =
+        acc[date].precipitation + currentDate.precipitation ? currentDate.precipitation.sg : 0;
+
+      // Asignar valor
+      acc[date] = { precipitation: currentPrecipitation };
+
+      return acc;
+    }, {});
+
+    data = groups;
+
+    return data;
   }
+
+  return null;
 }
 
 function errors(err) {

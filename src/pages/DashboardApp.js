@@ -31,7 +31,10 @@ export default function DashboardApp() {
       <Container maxWidth="xl">
         <Box sx={{ pb: 5 }}>
           <Typography variant="h4">¡Bienvenid@!</Typography>
-          <Button onClick={(e) => precipitation()} variant="contained">
+          <Button
+            onClick={(e) => precipitation('2020-02-20') /* precipitation('2021-09-29') */}
+            variant="contained"
+          >
             Buscar{' '}
           </Button>
         </Box>
