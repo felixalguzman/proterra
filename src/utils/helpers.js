@@ -1,4 +1,5 @@
 import * as moment from 'moment';
+import { supabase } from '../supabaseConfig';
 // https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=19.478969&lon=-70.695968&altitude=4150
 // cropPhases = {
 //     inicial: {
@@ -9,6 +10,7 @@ import * as moment from 'moment';
 
 let latitude;
 let longitude;
+
 export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
   const totalNeeds = 0;
   const today = moment();
@@ -32,9 +34,12 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
   return { totalNeeds, rain };
 }
 
+// Litros por minutos
+
 function littersQuantity(cultivo, etapa) {
   const evo = evoTPorEtapa(cultivo).find((x) => x.etapa === etapa);
   let addition = 0;
+  let time = 0;
   if (evo) {
     const missingLitters = evo.etc * cultivo.area;
     if (cultivo.irrigationType === 'Aspersión') addition = 0.3;
@@ -44,15 +49,27 @@ function littersQuantity(cultivo, etapa) {
     // Hay que guardarlo
     const litterRes = missingLitters + missingLitters * addition;
 
-    if (addition === 'Goteo') {
+    if (cultivo.irrigationType === 'Goteo') {
       // todo por preguntar
+
+      const { alto, ancho } = cultivo.area;
+      const { distanciamientoPlanta, distanciaSurco } = cultivo;
+      const r = alto / distanciamientoPlanta;
+
+      const l = ancho / distanciaSurco;
+
+      const result = r * l;
+
+      const littersCapacity = result * 1000;
+      time = litterRes / littersCapacity;
     } else {
-      // Litros por minutos
       const irrigation = cultivo.area / 36;
       const littersCapacity = irrigation * 1000;
-      const time = litterRes / littersCapacity;
+      time = litterRes / littersCapacity;
     }
   }
+
+  return time;
 }
 
 function evoTPorEtapa(cultivo) {
@@ -195,21 +212,34 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
 
-export async function getData(period) {
-  const { days, start } = period;
+export async function getData(cultivo) {
+  const { datePlanted, daysToFinish } = cultivo;
 
-  const data = [];
+  const dataToInsert = [];
 
   /* eslint-disable no-await-in-loop */
   for (let index = 1; index <= 2; index += 1) {
-    const oldStart = moment(start).add(-index, 'year');
+    const oldStart = moment(datePlanted).add(-index, 'year');
 
     const lastYearData = await precipitation(oldStart.format());
     await sleep(2000);
 
-    if (lastYearData) data.push(lastYearData);
+    if (lastYearData) {
+      // eslint-disable-next-line no-loop-func,guard-for-in,no-restricted-syntax
+      for (const key in lastYearData) {
+        dataToInsert.push({
+          date: lastYearData[key].date,
+          'wind-speed': lastYearData[key].windProm,
+          precipitation: lastYearData[key].precipitation,
+          'air-temp': lastYearData[key].airTemperatureProm,
+          humidity: lastYearData[key].humidityProm,
+          latitud: latitude,
+          longitud: longitude
+        });
+      }
+    }
 
-    const daysToAdd = Math.ceil(days / 10);
+    const daysToAdd = Math.ceil(daysToFinish / 10);
 
     /* eslint-disable no-await-in-loop */
     for (let daysIndex = 0; daysIndex < daysToAdd; daysIndex += 1) {
@@ -218,12 +248,29 @@ export async function getData(period) {
 
       const res = await precipitation(startWithDays.format());
 
-      if (res) data.push(res);
+      if (res) {
+        // eslint-disable-next-line guard-for-in,no-restricted-syntax
+        for (const key in res) {
+          dataToInsert.push({
+            date: res[key].date,
+            'wind-speed': res[key].windProm,
+            precipitation: res[key].precipitation,
+            'air-temp': res[key].airTemperatureProm,
+            humidity: res[key].humidityProm,
+            latitud: latitude,
+            longitud: longitude
+          });
+        }
+      }
       await sleep(2000);
     }
   }
 
-  console.log(data);
+  console.log(dataToInsert);
+  const { data, error } = await supabase.from('RainRegister').insert(dataToInsert);
+
+  if (error) console.log(error);
+  console.log('data insertada', data);
 }
 
 function sleep(ms) {
@@ -258,19 +305,50 @@ export async function precipitation(start) {
 
       // Inicializar campos vacios
       if (!acc[date]) {
-        acc[date] = { precipitation: 0 };
+        acc[date] = {
+          precipitation: 0,
+          windSpeed: [],
+          airTemperature: [],
+          currentSpeed: [],
+          humidity: []
+        };
       }
 
       const currentPrecipitation =
         acc[date].precipitation + currentDate.precipitation ? currentDate.precipitation.sg : 0;
 
       // Asignar valor
-      acc[date] = { precipitation: currentPrecipitation };
+      acc[date] = {
+        precipitation: currentPrecipitation,
+        windSpeed: [...acc[date].windSpeed, currentDate.windSpeed ? currentDate.windSpeed.sg : 0],
+        airTemperature: [
+          ...acc[date].airTemperature,
+          currentDate.airTemperature ? currentDate.airTemperature.sg : 0
+        ],
+        currentSpeed: [
+          ...acc[date].currentSpeed,
+          currentDate.currentSpeed ? currentDate.currentSpeed.sg : 0
+        ],
+        humidity: [...acc[date].humidity, currentDate.humidity ? currentDate.humidity.sg : 0]
+      };
 
       return acc;
     }, {});
 
     data = groups;
+    // Calcular promedios
+    // eslint-disable-next-line guard-for-in,no-restricted-syntax
+    for (const key in data) {
+      const windProm = data[key].windSpeed.reduce((a, b) => a + b, 0) / data[key].windSpeed.length;
+      const airTemperature =
+        data[key].airTemperature.reduce((a, b) => a + b, 0) / data[key].airTemperature.length;
+      const humidity = data[key].humidity.reduce((a, b) => a + b, 0) / data[key].humidity.length;
+
+      data[key].windProm = windProm;
+      data[key].airTemperatureProm = airTemperature;
+      data[key].humidityProm = humidity;
+      data[key].date = key;
+    }
 
     return data;
   }
@@ -309,5 +387,27 @@ export function getLocation() {
     });
   } else {
     alert('Sorry Not available!');
+  }
+}
+
+export async function fillData(cultivo) {
+  const { datePlanted, daysToFinish } = cultivo;
+
+  // hay que buscar en la base de datos, el PROMEDIO
+  const dateStart = moment(datePlanted);
+  const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
+
+  const start = moment(dateStart);
+  const end = moment(dateFinish);
+
+  if (latitude && longitude) {
+    while (start <= end) {
+      const res = await precipitation(start.format());
+
+      await sleep(2000);
+      start.add(10, 'days');
+    }
+  } else {
+    console.log('no hay latitud y longitud');
   }
 }
