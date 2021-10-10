@@ -130,6 +130,7 @@ function evotranspiration(cultivo, dateStart, dateEnd) {
 
     start.add(1, 'days');
   }
+  // Se hara todo por día
   // const sum = etos.reduce((a, b) => a + b.eto, 0);
   // const avg = sum / etos.length || 0;
   // const daysDiff = moment(dateStart).diff(dateEnd, 'days');
