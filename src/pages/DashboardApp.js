@@ -19,7 +19,7 @@ import {
 } from '../components/_dashboard/app';
 
 // ----------------------------------------------------------------------
-import { getLocation, precipitation } from '../utils/helpers';
+import { getLocation, getData } from '../utils/helpers';
 
 export default function DashboardApp() {
   useState(() => {
@@ -31,7 +31,16 @@ export default function DashboardApp() {
       <Container maxWidth="xl">
         <Box sx={{ pb: 5 }}>
           <Typography variant="h4">¡Bienvenid@!</Typography>
-          <Button onClick={(e) => precipitation()} variant="contained">
+          <Button
+            onClick={
+              (e) =>
+                getData({
+                  datePlanted: '2021-10-04',
+                  daysToFinish: 24
+                }) /* precipitation('2021-09-29') */
+            }
+            variant="contained"
+          >
             Buscar{' '}
           </Button>
         </Box>
