@@ -36,40 +36,67 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
 
 // Litros por minutos
 
-function littersQuantity(cultivo, etapa) {
-  const evo = evoTPorEtapa(cultivo).find((x) => x.etapa === etapa);
+function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
+  const evo = evotranspiration(cultivo, dateStart, dateEnd);
   let addition = 0;
   let time = 0;
-  if (evo) {
-    const missingLitters = evo.etc * cultivo.area;
-    if (cultivo.irrigationType === 'Aspersión') addition = 0.3;
-    else if (cultivo.irrigationType === 'Microaspersión') addition = 0.15;
-    else addition = 0.1;
+  let caudalTotal = 0;
+  const result = [];
 
-    // Hay que guardarlo
-    const litterRes = missingLitters + missingLitters * addition;
+  evo.forEach((value) => {
+    if (value.evo) {
+      const data = {};
+      data.day = value.day;
+      data.evo = value.evo;
 
-    if (cultivo.irrigationType === 'Goteo') {
-      // todo por preguntar
+      const missingLitters = evo.etc * cultivo.area;
+      if (cultivo.irrigationType === 'Aspersión') {
+        addition = 0.3;
+        // Se tiene que poner del usuario, el caudal de riego, aspersores
+        const caudalDeRiego = 1;
+        const cantidadAspersores = 1;
+        caudalTotal = cantidadAspersores * caudalDeRiego;
 
-      const { alto, ancho } = cultivo.area;
-      const { distanciamientoPlanta, distanciaSurco } = cultivo;
-      const r = alto / distanciamientoPlanta;
+        data.caudalTotal = caudalTotal;
+      } else if (cultivo.irrigationType === 'Microaspersión') {
+        addition = 0.15;
+        // Se tiene que poner del usuario, el caudal de riego, aspersores
+        const caudalDeRiego = 1;
+        const cantidadAspersores = 1;
+        caudalTotal = cantidadAspersores * caudalDeRiego;
+        data.caudalTotal = caudalTotal;
+      } else addition = 0.1;
 
-      const l = ancho / distanciaSurco;
+      // Hay que guardarlo
+      const litterRes = missingLitters + missingLitters * addition;
+      data.litros = litterRes;
 
-      const result = r * l;
+      if (cultivo.irrigationType === 'Goteo') {
+        // todo por preguntar
 
-      const littersCapacity = result * 1000;
-      time = litterRes / littersCapacity;
-    } else {
-      const irrigation = cultivo.area / 36;
-      const littersCapacity = irrigation * 1000;
-      time = litterRes / littersCapacity;
+        const { distanciamientoPlanta, distanciaSurco } = cultivo;
+
+        const result = cultivo.area / (distanciamientoPlanta * distanciaSurco);
+        // Se tiene que poner del usuario, el caudal de riego
+        const caudalDeRiego = 1;
+        caudalTotal = result * caudalDeRiego;
+        data.caudalTotal = caudalTotal;
+
+        const littersCapacity = result * 1000;
+        time = litterRes / littersCapacity;
+        data.time = time;
+      } else {
+        const irrigation = cultivo.area / 36;
+        const littersCapacity = irrigation * 1000;
+        time = litterRes / littersCapacity;
+        data.time = time;
+      }
+
+      result.push(data);
     }
-  }
+  });
 
-  return time;
+  return result;
 }
 
 function evoTPorEtapa(cultivo) {
@@ -103,12 +130,15 @@ function evotranspiration(cultivo, dateStart, dateEnd) {
 
     start.add(1, 'days');
   }
-  const sum = etos.reduce((a, b) => a + b.eto, 0);
-  const avg = sum / etos.length || 0;
-  const daysDiff = moment(dateStart).diff(dateEnd, 'days');
-
-  const response = { etos, evo: avg * daysDiff * cultivo.kc };
-  return response;
+  // const sum = etos.reduce((a, b) => a + b.eto, 0);
+  // const avg = sum / etos.length || 0;
+  // const daysDiff = moment(dateStart).diff(dateEnd, 'days');
+  // const response = { etos, evo: avg * daysDiff * cultivo.kc };
+  etos.map((value) => {
+    value.evo = value.eto * cultivo.kc;
+    return value;
+  });
+  return etos;
 }
 
 function periodoPorLluvia(cultivo) {
