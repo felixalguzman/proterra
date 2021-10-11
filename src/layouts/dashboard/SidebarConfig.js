@@ -19,7 +19,7 @@ const sidebarConfig = [
   },
   {
     title: 'Calendario',
-    path: '/dashboard/user',
+    path: '/dashboard/calendar',
     icon: getIcon(peopleFill)
   },
   {
@@ -31,11 +31,6 @@ const sidebarConfig = [
     title: 'Pronóstico Semanal',
     path: '/dashboard/blog',
     icon: getIcon(fileTextFill)
-  },
-  {
-    title: 'Calendario',
-    path: '/dashboard/calendar',
-    icon: getIcon(alertTriangleFill)
   }
   // {
   //   title: 'login',

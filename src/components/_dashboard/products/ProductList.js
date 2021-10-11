@@ -71,7 +71,7 @@ function IrrigationForm() {
           // user: //todo
         }
       ]);
-      // navigate('/irrigation', { replace: true }); // todo funcion todologa
+      navigate('/dashboard/calendar', { replace: true }); // todo funcion todologa
     }
   });
 
@@ -80,91 +80,100 @@ function IrrigationForm() {
   return (
     <FormikProvider value={formik}>
       <Form autoComplete="off" noValidate onSubmit={handleSubmit}>
-        <Stack spacing={3}>
-          <TextField id="name" label="Identificador" value={values.name} onChange={handleChange} />
-          <FormControl fullWidth>
-            <InputLabel id="crop-label">Cultivo</InputLabel>
-            <Select
-              labelId="crop-label"
-              id="crop"
-              name="crop"
-              value={values.crop}
-              label="Cultivo"
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <Stack spacing={3}>
+            <TextField
+              id="name"
+              label="Identificador"
+              value={values.name}
               onChange={handleChange}
-            >
-              {junkData.map((crop) => (
-                <MenuItem value={crop.id}>{crop.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel id="irrigationType-label">Tipo de riego</InputLabel>
-            <Select
-              labelId="irrigatioType-label"
-              id="irrigatioType"
-              name="irrigatioType"
-              value={values.irrigatioType}
-              label="Tipo de riego"
-              onChange={handleChange}
-            >
-              {junkData.map((crop) => (
-                <MenuItem value={crop.id}>{crop.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <OutlinedInput
-              id="area"
-              value={values.area}
-              onChange={handleChange}
-              type="number"
-              endAdornment={<InputAdornment position="end">metros cuadrados</InputAdornment>}
-              aria-describedby="area-helper-text"
-              inputProps={{
-                'aria-label': 'area'
-              }}
             />
-            <FormHelperText id="area-helper-text">Area</FormHelperText>
-          </FormControl>
-          <FormControl>
-            <OutlinedInput
-              id="plantDistance"
-              value={values.plantDistance}
-              onChange={handleChange}
-              type="number"
-              endAdornment={<InputAdornment position="end">metros</InputAdornment>}
-              aria-describedby="plantDistance-helper-text"
-              inputProps={{
-                'aria-label': 'plantDistance'
-              }}
-            />
-            <FormHelperText id="plantDistance-helper-text">Distancia entre plantas</FormHelperText>
-          </FormControl>
-          <FormControl>
-            <OutlinedInput
-              id="surcosDistance"
-              value={values.surcosDistance}
-              onChange={handleChange}
-              type="number"
-              endAdornment={<InputAdornment position="end">metros</InputAdornment>}
-              aria-describedby="surcosDistance-helper-text"
-              inputProps={{
-                'aria-label': 'surcosDistance'
-              }}
-            />
-            <FormHelperText id="surcosDistance-helper-text">Distancia entre surcos</FormHelperText>
-          </FormControl>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <MobileDatePicker
+            <FormControl fullWidth>
+              <InputLabel id="crop-label">Cultivo</InputLabel>
+              <Select
+                labelId="crop-label"
+                id="crop"
+                name="crop"
+                value={values.crop}
+                label="Cultivo"
+                onChange={handleChange}
+              >
+                {junkData.map((crop) => (
+                  <MenuItem value={crop.id}>{crop.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel id="irrigationType-label">Tipo de riego</InputLabel>
+              <Select
+                labelId="irrigatioType-label"
+                id="irrigatioType"
+                name="irrigatioType"
+                value={values.irrigatioType}
+                label="Tipo de riego"
+                onChange={handleChange}
+              >
+                {junkData.map((crop) => (
+                  <MenuItem value={crop.id}>{crop.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl>
+              <OutlinedInput
+                id="area"
+                value={values.area}
+                onChange={handleChange}
+                type="number"
+                endAdornment={<InputAdornment position="end">metros cuadrados</InputAdornment>}
+                aria-describedby="area-helper-text"
+                inputProps={{
+                  'aria-label': 'area'
+                }}
+              />
+              <FormHelperText id="area-helper-text">Area</FormHelperText>
+            </FormControl>
+            <FormControl>
+              <OutlinedInput
+                id="plantDistance"
+                value={values.plantDistance}
+                onChange={handleChange}
+                type="number"
+                endAdornment={<InputAdornment position="end">metros</InputAdornment>}
+                aria-describedby="plantDistance-helper-text"
+                inputProps={{
+                  'aria-label': 'plantDistance'
+                }}
+              />
+              <FormHelperText id="plantDistance-helper-text">
+                Distancia entre plantas
+              </FormHelperText>
+            </FormControl>
+            <FormControl>
+              <OutlinedInput
+                id="surcosDistance"
+                value={values.surcosDistance}
+                onChange={handleChange}
+                type="number"
+                endAdornment={<InputAdornment position="end">metros</InputAdornment>}
+                aria-describedby="surcosDistance-helper-text"
+                inputProps={{
+                  'aria-label': 'surcosDistance'
+                }}
+              />
+              <FormHelperText id="surcosDistance-helper-text">
+                Distancia entre surcos
+              </FormHelperText>
+            </FormControl>
+            {/* <MobileDatePicker
               id="date"
-              label="Date mobile"
+              label="Fecha de siembra"
               inputFormat="MM/dd/yyyy"
               value={values.date}
               onChange={handleChange}
               renderInput={(params) => <TextField {...params} />}
-            />
-          </LocalizationProvider>
-        </Stack>
+            /> */}
+          </Stack>
+        </LocalizationProvider>
         <LoadingButton
           // fullWidth
           size="large"
