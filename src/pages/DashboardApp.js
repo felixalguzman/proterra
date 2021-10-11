@@ -21,34 +21,42 @@ import {
 // ----------------------------------------------------------------------
 import { getLocation, getData } from '../utils/helpers';
 
+const junkData = [
+  { name: 'Primera Parcela', status: 'En proceso' },
+  { name: 'Segunda Parcela', status: 'En proceso' },
+  { name: 'Tercera Parcela', status: 'Completada' }
+];
+
 export default function DashboardApp() {
   useState(() => {
     getLocation();
   });
 
   return (
-    <Page title="ProTerra | Cuida del agua">
+    <Page title="Neró | Cuida del agua">
       <Container maxWidth="xl">
         <Box sx={{ pb: 5 }}>
           <Typography variant="h4">¡Bienvenid@!</Typography>
-          <Button
+          {/* <Button
             onClick={
               (e) =>
                 getData({
                   datePlanted: '2021-10-04',
                   daysToFinish: 24
-                }) /* precipitation('2021-09-29') */
+                }) // precipitation('2021-09-29')
             }
             variant="contained"
           >
             Buscar{' '}
-          </Button>
+          </Button> */}
         </Box>
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <AppWeeklySales />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          {junkData.map((parcela) => (
+            <Grid item xs={12} sm={6}>
+              <AppWeeklySales name={parcela.name} status={parcela.status} />
+            </Grid>
+          ))}
+          {/* <Grid item xs={12} sm={6} md={3}>
             <AppNewUsers />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -88,7 +96,7 @@ export default function DashboardApp() {
 
           <Grid item xs={12} md={6} lg={8}>
             <AppTasks />
-          </Grid>
+          </Grid> */}
         </Grid>
       </Container>
     </Page>

@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react';
-import androidFilled from '@iconify/icons-ant-design/android-filled';
+import plantIcon from '@iconify/icons-cil/plant';
 // material
 import { alpha, styled } from '@mui/material/styles';
 import { Card, Typography } from '@mui/material';
@@ -10,10 +10,11 @@ import { fShortenNumber } from '../../../utils/formatNumber';
 
 const RootStyle = styled(Card)(({ theme }) => ({
   boxShadow: 'none',
-  textAlign: 'center',
+  // textAlign: 'center',
   padding: theme.spacing(5, 0),
   color: theme.palette.primary.darker,
-  backgroundColor: theme.palette.primary.lighter
+  backgroundColor: theme.palette.primary.lighter,
+  display: 'flex'
 }));
 
 const IconWrapperStyle = styled('div')(({ theme }) => ({
@@ -36,16 +37,18 @@ const IconWrapperStyle = styled('div')(({ theme }) => ({
 
 const TOTAL = 714000;
 
-export default function AppWeeklySales() {
+export default function AppWeeklySales({ name, status }) {
   return (
     <RootStyle>
       <IconWrapperStyle>
-        <Icon icon={androidFilled} width={24} height={24} />
+        <Icon icon={plantIcon} width={24} height={24} />
       </IconWrapperStyle>
-      <Typography variant="h3">{fShortenNumber(TOTAL)}</Typography>
-      <Typography variant="subtitle2" sx={{ opacity: 0.72 }}>
-        Weekly Sales
-      </Typography>
+      <div style={{ flexGrow: 0.5 }}>
+        <Typography variant="h3">{name}</Typography>
+        <Typography variant="subtitle2" sx={{ opacity: 0.72 }}>
+          {status}
+        </Typography>
+      </div>
     </RootStyle>
   );
 }

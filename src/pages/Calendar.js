@@ -71,13 +71,6 @@ export default function Calendar() {
             Refresh
           </Button>
         </Stack>
-        <div>
-          <img
-            src="https://www.theweather.com/wimages/foto6472cecbd5aca7b0906539e3b1663fd9.png"
-            alt="clima"
-          />
-        </div>
-
         <FullCalendar
           plugins={[dayGridPlugin, timeGrid, interactionPlugin]}
           initialView="dayGridMonth"
