@@ -50,10 +50,10 @@ export default function EcommerceShop() {
     <Page title="Dashboard: Products | Minimal-UI">
       <Container>
         <Typography variant="h4" sx={{ mb: 5 }}>
-          Products
+          Nueva Parcela
         </Typography>
 
-        <Stack
+        {/* <Stack
           direction="row"
           flexWrap="wrap-reverse"
           alignItems="center"
@@ -70,10 +70,10 @@ export default function EcommerceShop() {
             />
             <ProductSort />
           </Stack>
-        </Stack>
+        </Stack> */}
 
         <ProductList products={PRODUCTS} />
-        <ProductCartWidget />
+        {/* <ProductCartWidget /> */}
       </Container>
     </Page>
   );

@@ -11,32 +11,32 @@ import { supabase } from '../supabaseConfig';
 let latitude;
 let longitude;
 
-export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
-  const totalNeeds = 0;
-  const today = moment();
-  const initialDay = today;
-  const rain = {
-    inicial: 0,
-    desarrollo: 0,
-    medio: 0,
-    final: 0,
-    total: 0
-  };
+// export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
+//   const totalNeeds = 0;
+//   const today = moment();
+//   const initialDay = today;
+//   const rain = {
+//     inicial: 0,
+//     desarrollo: 0,
+//     medio: 0,
+//     final: 0,
+//     total: 0
+//   };
 
-  const { /* inicial, desarrollo, medio, final, */ currentPeriod, missingDays } = etapa(
-    cropPhases,
-    cropPeriod,
-    sowingDate
-  );
+//   const { /* inicial, desarrollo, medio, final, */ currentPeriod, missingDays } = etapa(
+//     cropPhases,
+//     cropPeriod,
+//     sowingDate
+//   );
 
-  // crop's evapotranspiration
+//   // crop's evapotranspiration
 
-  return { totalNeeds, rain };
-}
+//   return { totalNeeds, rain };
+// }
 
 // Litros por minutos
 
-function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
+export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
   const evo = evotranspiration(cultivo, dateStart, dateEnd);
   let addition = 0;
   let time = 0;
@@ -419,6 +419,7 @@ export function getLocation() {
   } else {
     alert('Sorry Not available!');
   }
+  // todo add to db
 }
 
 export async function fillData(cultivo) {
