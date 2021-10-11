@@ -40,13 +40,19 @@ export default function RegisterForm() {
       setLoginError(null);
 
       setLoading(true);
-      register(form.email, form.password);
+      register(form.firstName, form.lastName, form.email, form.password);
       setLoading(false);
     }
   });
 
-  const register = async (email, password) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const register = async (firstName, lastName, email, password) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { firstName, lastName }
+      }
+    });
     if (error) {
       setLoginError(error.message);
     }

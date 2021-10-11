@@ -1,6 +1,6 @@
 // material
 import { Box, Grid, Container, Typography, Button } from '@mui/material';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // components
 import Page from '../components/Page';
 import {
@@ -20,6 +20,7 @@ import {
 
 // ----------------------------------------------------------------------
 import { getLocation, getData } from '../utils/helpers';
+import { supabase } from '../supabaseConfig';
 
 const junkData = [
   { name: 'Primera Parcela', status: 'En proceso' },
@@ -28,9 +29,19 @@ const junkData = [
 ];
 
 export default function DashboardApp() {
+  const [landLotsData, setLandLotsData] = useState(null);
   useState(() => {
     getLocation();
   });
+
+  useEffect(() => {
+    async function getData() {
+      const landLots = await supabase.from('LandLot').select();
+
+      setLandLotsData(landLots.data);
+    }
+    getData();
+  }, []);
 
   return (
     <Page title="Neró | Cuida del agua">
@@ -51,11 +62,15 @@ export default function DashboardApp() {
           </Button> */}
         </Box>
         <Grid container spacing={3}>
-          {junkData.map((parcela) => (
-            <Grid item xs={12} sm={6}>
-              <AppWeeklySales name={parcela.name} status={parcela.status} />
-            </Grid>
-          ))}
+          {landLotsData && landLotsData.length ? (
+            landLotsData.map((parcela) => (
+              <Grid item xs={12} sm={6}>
+                <AppWeeklySales name={parcela.name} status={parcela.status} />
+              </Grid>
+            ))
+          ) : (
+            <Typography>No hay parcelas registradas</Typography>
+          )}
           {/* <Grid item xs={12} sm={6} md={3}>
             <AppNewUsers />
           </Grid>

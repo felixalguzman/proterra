@@ -6,7 +6,16 @@ import settings2Fill from '@iconify/icons-eva/settings-2-fill';
 import { Link as RouterLink } from 'react-router-dom';
 // material
 import { alpha } from '@mui/material/styles';
-import { Button, Box, Divider, MenuItem, Typography, Avatar, IconButton } from '@mui/material';
+import {
+  Button,
+  Box,
+  Divider,
+  MenuItem,
+  Typography,
+  Avatar,
+  IconButton,
+  Link
+} from '@mui/material';
 // components
 import MenuPopover from '../../components/MenuPopover';
 //
@@ -29,6 +38,11 @@ const MENU_OPTIONS = [
     label: 'Settings',
     icon: settings2Fill,
     linkTo: '#'
+  },
+  {
+    label: 'Logout',
+    icon: personFill,
+    linkTo: '/login'
   }
 ];
 
@@ -109,11 +123,11 @@ export default function AccountPopover() {
           </MenuItem>
         ))}
 
-        <Box sx={{ p: 2, pt: 1.5 }}>
-          <Button fullWidth color="inherit" variant="outlined">
+        {/* <Box sx={{ p: 2, pt: 1.5 }}>
+          <Link component="button" href="/">
             Logout
-          </Button>
-        </Box>
+          </Link>
+        </Box> */}
       </MenuPopover>
     </>
   );

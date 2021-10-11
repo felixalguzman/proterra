@@ -1,5 +1,6 @@
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
+import * as moment from 'moment';
 import refreshFill from '@iconify/icons-eva/refresh-fill';
 import { Link as RouterLink } from 'react-router-dom';
 // material
@@ -26,13 +27,19 @@ import interactionPlugin from '@fullcalendar/interaction'; // needed for dayClic
 
 import Page from '../components/Page';
 import { littersQuantityPerDay } from '../utils/helpers';
+import { supabase } from '../supabaseConfig';
 
-export default function Calendar() {
+export default async function Calendar() {
   const [events, setEvents] = useState([]);
   const handleDateClick = (arg) => {
     // bind with an arrow function
     alert(arg.dateStr);
   };
+  const user = supabase.auth.user();
+  const today = moment();
+  const landLot = await supabase.from('LandLot').select();
+  const crop = await supabase.from('Crop').select();
+  const cropPhase = await supabase.from('CropPhase').select();
 
   const refresh = (event) => {
     const data = littersQuantityPerDay(

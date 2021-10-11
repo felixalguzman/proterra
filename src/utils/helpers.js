@@ -1,40 +1,11 @@
 import * as moment from 'moment';
 import { supabase } from '../supabaseConfig';
 // https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=19.478969&lon=-70.695968&altitude=4150
-// cropPhases = {
-//     inicial: {
-//         kc: 12,
-//         days: 9
-//     }, ...
-// }
 
 let latitude;
 let longitude;
 
-// export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
-//   const totalNeeds = 0;
-//   const today = moment();
-//   const initialDay = today;
-//   const rain = {
-//     inicial: 0,
-//     desarrollo: 0,
-//     medio: 0,
-//     final: 0,
-//     total: 0
-//   };
-
-//   const { /* inicial, desarrollo, medio, final, */ currentPeriod, missingDays } = etapa(
-//     cropPhases,
-//     cropPeriod,
-//     sowingDate
-//   );
-
-//   // crop's evapotranspiration
-
-//   return { totalNeeds, rain };
-// }
-
-// Litros por minutos
+// en la bd buscar tMax, tMin, tMedia
 
 export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
   const evo = evotranspiration(cultivo, dateStart, dateEnd);
@@ -204,6 +175,7 @@ export function calculateEtapa(cultivo) {
   return etapas;
 }
 
+// check if sowing date is before today
 function etapa(cropPhases, cropPeriod, sowingDate) {
   const { inicial, desarrollo, medio, final } = cropPhases;
   const today = moment();
@@ -246,6 +218,7 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
 
+// 2 years of rain data
 export async function getData(cultivo) {
   const { datePlanted, daysToFinish } = cultivo;
 
@@ -311,6 +284,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 1 request per call. Historical
 export async function precipitation(start) {
   // https://api.met.no/weatherapi/locationforecast/2.0/complete?
 
@@ -390,10 +364,7 @@ export async function precipitation(start) {
   return null;
 }
 
-function errors(err) {
-  console.warn(`ERROR(${err.code}): ${err.message}`);
-}
-
+// location
 function getCoords(pos) {
   const crd = pos.coords;
 
@@ -424,25 +395,24 @@ export function getLocation() {
   }
   // todo add to db
 }
+// export async function fillData(cultivo) {
+//   const { datePlanted, daysToFinish } = cultivo;
 
-export async function fillData(cultivo) {
-  const { datePlanted, daysToFinish } = cultivo;
+//   // hay que buscar en la base de datos, el PROMEDIO
+//   const dateStart = moment(datePlanted);
+//   const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
 
-  // hay que buscar en la base de datos, el PROMEDIO
-  const dateStart = moment(datePlanted);
-  const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
+//   const start = moment(dateStart);
+//   const end = moment(dateFinish);
 
-  const start = moment(dateStart);
-  const end = moment(dateFinish);
+//   if (latitude && longitude) {
+//     while (start <= end) {
+//       const res = await precipitation(start.format());
 
-  if (latitude && longitude) {
-    while (start <= end) {
-      const res = await precipitation(start.format());
-
-      await sleep(2000);
-      start.add(10, 'days');
-    }
-  } else {
-    console.log('no hay latitud y longitud');
-  }
-}
+//       await sleep(2000);
+//       start.add(10, 'days');
+//     }
+//   } else {
+//     console.log('no hay latitud y longitud');
+//   }
+// }
