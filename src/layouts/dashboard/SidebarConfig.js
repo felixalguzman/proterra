@@ -31,6 +31,11 @@ const sidebarConfig = [
     title: 'Pronóstico Semanal',
     path: '/dashboard/blog',
     icon: getIcon(fileTextFill)
+  },
+  {
+    title: 'Calendario',
+    path: '/dashboard/calendar',
+    icon: getIcon(alertTriangleFill)
   }
   // {
   //   title: 'login',
