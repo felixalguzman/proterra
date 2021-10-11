@@ -36,7 +36,7 @@ export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
 
 // Litros por minutos
 
-function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
+export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
   const evo = evotranspiration(cultivo, dateStart, dateEnd);
   let addition = 0;
   let time = 0;
@@ -44,12 +44,12 @@ function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
   const result = [];
 
   evo.forEach((value) => {
-    if (value.evo) {
+    if (value.etc) {
       const data = {};
       data.day = value.day;
-      data.evo = value.evo;
+      data.etc = value.etc;
 
-      const missingLitters = evo.etc * cultivo.area;
+      const missingLitters = value.etc * cultivo.area;
       if (cultivo.irrigationType === 'Aspersión') {
         addition = 0.3;
         // Se tiene que poner del usuario, el caudal de riego, aspersores
@@ -86,6 +86,7 @@ function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         time = litterRes / littersCapacity;
         data.time = time;
       } else {
+        // todo arreglar
         const irrigation = cultivo.area / 36;
         const littersCapacity = irrigation * 1000;
         time = litterRes / littersCapacity;
@@ -93,6 +94,8 @@ function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
       }
 
       result.push(data);
+    } else {
+      console.log('no hay evo de', value);
     }
   });
 
@@ -125,8 +128,8 @@ function evotranspiration(cultivo, dateStart, dateEnd) {
   // Calcular eto
   while (start <= end) {
     // en la bd buscar tMax, tMin, tMedia
-    const eto = 0.0023 * (1 + 17.8) * 1 * (1 * -1) ** 0.5;
-    etos.push({ eto, day: start.format('L') });
+    const eto = 0.0023 * (1 + 17.8) * 1 * (3 - 1) ** 0.5;
+    etos.push({ eto, day: start.format('YYYY-MM-DD') });
 
     start.add(1, 'days');
   }
@@ -136,7 +139,7 @@ function evotranspiration(cultivo, dateStart, dateEnd) {
   // const daysDiff = moment(dateStart).diff(dateEnd, 'days');
   // const response = { etos, evo: avg * daysDiff * cultivo.kc };
   etos.map((value) => {
-    value.evo = value.eto * cultivo.kc;
+    value.etc = value.eto * cultivo.kc;
     return value;
   });
   return etos;

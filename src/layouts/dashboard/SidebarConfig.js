@@ -46,6 +46,11 @@ const sidebarConfig = [
     title: 'Not found',
     path: '/404',
     icon: getIcon(alertTriangleFill)
+  },
+  {
+    title: 'Calendario',
+    path: '/dashboard/calendar',
+    icon: getIcon(alertTriangleFill)
   }
 ];
 
