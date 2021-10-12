@@ -5,10 +5,9 @@ import { supabase } from '../supabaseConfig';
 let latitude;
 let longitude;
 
-// en la bd buscar tMax, tMin, tMedia
-
-export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
-  const evo = evotranspiration(cultivo, dateStart, dateEnd);
+export function littersQuantityPerDay(cultivo, sowingDate, periodTotalDays) {
+  const dateEnd = moment(sowingDate).add(periodTotalDays, 'days');
+  const evo = evotranspiration(cultivo, sowingDate, dateEnd);
   let addition = 0;
   let time = 0;
   let caudalTotal = 0;
@@ -20,8 +19,8 @@ export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
       data.day = value.day;
       data.etc = value.etc;
 
-      const missingLitters = value.etc * cultivo.area;
-      if (cultivo.irrigationType === 'Aspersión') {
+      const et = value.etc * cultivo.area;
+      if (cultivo.irrigationType === 1) {
         addition = 0.3;
         // Se tiene que poner del usuario, el caudal de riego, aspersores
         const caudalDeRiego = 1;
@@ -29,7 +28,7 @@ export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         caudalTotal = cantidadAspersores * caudalDeRiego;
 
         data.caudalTotal = caudalTotal;
-      } else if (cultivo.irrigationType === 'Microaspersión') {
+      } else if (cultivo.irrigationType === 2) {
         addition = 0.15;
         // Se tiene que poner del usuario, el caudal de riego, aspersores
         const caudalDeRiego = 1;
@@ -38,11 +37,7 @@ export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         data.caudalTotal = caudalTotal;
       } else addition = 0.1;
 
-      // Hay que guardarlo
-      const litterRes = missingLitters + missingLitters * addition;
-      data.litros = litterRes;
-
-      if (cultivo.irrigationType === 'Goteo') {
+      if (cultivo.irrigationType === 3) {
         // todo por preguntar
 
         const { distanciamientoPlanta, distanciaSurco } = cultivo;
@@ -52,17 +47,14 @@ export function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         const caudalDeRiego = 1;
         caudalTotal = result * caudalDeRiego;
         data.caudalTotal = caudalTotal;
-
-        const littersCapacity = result * 1000;
-        time = litterRes / littersCapacity;
-        data.time = time;
-      } else {
-        // todo arreglar
-        const irrigation = cultivo.area / 36;
-        const littersCapacity = irrigation * 1000;
-        time = litterRes / littersCapacity;
-        data.time = time;
       }
+
+      caudalTotal += caudalTotal * addition;
+
+      // Hay que guardarlo
+      data.litros = et;
+      time = et / caudalTotal;
+      data.time = time;
 
       result.push(data);
     } else {
@@ -91,6 +83,24 @@ function evoTPorEtapa(cultivo) {
   return result;
 }
 
+// Min, Max, avg de fecha
+async function getTemps(day) {
+  const start = moment(day);
+
+  const { data, error } = await supabase
+    .from('RainRegisterViewProm')
+    .select('*')
+    .eq('date', `${start.format('MM-DD')}`)
+    .single();
+
+  // if (error) console.log(error);
+  // console.log(data);
+
+  if (data) return data;
+
+  return null;
+}
+
 function evotranspiration(cultivo, dateStart, dateEnd) {
   const etos = [];
 
@@ -98,9 +108,20 @@ function evotranspiration(cultivo, dateStart, dateEnd) {
   const end = moment(dateEnd);
   // Calcular eto
   while (start <= end) {
-    // en la bd buscar tMax, tMin, tMedia
-    const eto = 0.0023 * (1 + 17.8) * 1 * (3 - 1) ** 0.5;
-    etos.push({ eto, day: start.format('YYYY-MM-DD') });
+    getTemps(start).then((temps) => {
+      if (temps) {
+        // en la bd la cosa de la radiacion
+        const eto = 0.0023 * (temps.avg + 17.8) * 1 * (temps.max - temps.min) ** 0.5;
+
+        if (eto) {
+          etos.push({ eto, day: start.format('YYYY-MM-DD') });
+        } else {
+          console.log(`calcular con ${JSON.stringify(temps)}`);
+        }
+      } else {
+        console.log(`no hay temps de dia ${start}`);
+      }
+    });
 
     start.add(1, 'days');
   }
@@ -219,11 +240,9 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
 }
 
 // 2 years of rain data
-export async function getData(cultivo) {
-  const { datePlanted, daysToFinish } = cultivo;
-
+export async function getData(datePlanted, daysToFinish, landLotId) {
   const dataToInsert = [];
-
+  console.log('Buscando datos al pasado...');
   /* eslint-disable no-await-in-loop */
   for (let index = 1; index <= 2; index += 1) {
     const oldStart = moment(datePlanted).add(-index, 'year');
@@ -240,8 +259,9 @@ export async function getData(cultivo) {
           precipitation: lastYearData[key].precipitation,
           'air-temp': lastYearData[key].airTemperatureProm,
           humidity: lastYearData[key].humidityProm,
-          latitud: latitude,
-          longitud: longitude
+          // latitud: latitude,
+          // longitud: longitude,
+          landLot_id: landLotId
         });
       }
     }
@@ -264,8 +284,9 @@ export async function getData(cultivo) {
             precipitation: res[key].precipitation,
             'air-temp': res[key].airTemperatureProm,
             humidity: res[key].humidityProm,
-            latitud: latitude,
-            longitud: longitude
+            // latitud: latitude,
+            // longitud: longitude,
+            landLot_id: landLotId
           });
         }
       }

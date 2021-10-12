@@ -20,14 +20,8 @@ import {
 } from '../components/_dashboard/app';
 
 // ----------------------------------------------------------------------
-import { getLocation, getData } from '../utils/helpers';
+import { getLocation } from '../utils/helpers';
 import { supabase } from '../supabaseConfig';
-
-const junkData = [
-  { name: 'Primera Parcela', status: 'En proceso' },
-  { name: 'Segunda Parcela', status: 'En proceso' },
-  { name: 'Tercera Parcela', status: 'Completada' }
-];
 
 export default function DashboardApp() {
   const [landLotsData, setLandLotsData] = useState(null);
@@ -37,7 +31,13 @@ export default function DashboardApp() {
 
   useEffect(() => {
     async function getData() {
-      const landLots = await supabase.from('LandLot').select();
+      const landLots = await supabase.from('LandLot').select(
+        `
+        id,
+        name,
+        Status(description)
+        `
+      );
 
       setLandLotsData(landLots.data);
     }
@@ -72,7 +72,7 @@ export default function DashboardApp() {
                   component={RouterLink}
                   to={`/dashboard/calendar/${parcela.id}`}
                 >
-                  <AppWeeklySales name={parcela.name} status={parcela.status} />
+                  <AppWeeklySales name={parcela.name} status={parcela.Status.description} />
                 </Link>
               </Grid>
             ))

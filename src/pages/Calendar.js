@@ -26,12 +26,12 @@ import timeGrid from '@fullcalendar/timegrid'; // a plugin!
 import interactionPlugin from '@fullcalendar/interaction'; // needed for dayClick
 
 import Page from '../components/Page';
-import { littersQuantityPerDay } from '../utils/helpers';
+import { littersQuantityPerDay, getData } from '../utils/helpers';
 import { supabase } from '../supabaseConfig';
 
 export default function Calendar() {
   const [events, setEvents] = useState([]);
-  const [parcelas, setParcelas] = useState([]);
+  const [parcela, setParcela] = useState(null);
   const [cultivo, setCultivo] = useState(null);
   const { id } = useParams();
 
@@ -48,17 +48,17 @@ export default function Calendar() {
         irrigation_type,
         sowing_date,
         litters_applied,
-        Crop(id, period_total_days, radicular_capacity)
+        Crop(period_total_days, radicular_capacity)
         `
         )
         .eq('user', user.id)
         .eq('id', id);
 
       console.log(error);
-      setParcelas(data);
+      if (data && data.length > 0) setParcela(data[0]);
     };
     fetchData().then((r) => {
-      console.log(parcelas);
+      refresh();
     });
   }, [id]);
 
@@ -68,20 +68,41 @@ export default function Calendar() {
   };
   const user = supabase.auth.user();
 
+  const fillData = (event) => {
+    if (parcela) {
+      getData(parcela.sowing_date, parcela.Crop.period_total_days, parcela.id);
+    }
+  };
+
   const refresh = (event) => {
-    const data = littersQuantityPerDay(
-      { kc: 2, irrigationType: 'Goteo', area: 36, distanciamientoPlanta: 12, distanciaSurco: 6 },
-      '2021-09-20',
-      '2021-10-20'
-    );
+    if (parcela) {
+      const days = parcela.Crop.period_total_days;
+      const data = littersQuantityPerDay(
+        {
+          kc: 2,
+          irrigationType: parcela.irrigation_type,
+          area: parcela.area,
+          distanciamientoPlanta: 12,
+          distanciaSurco: 6
+        },
+        parcela.sowing_date,
+        days
+      );
+      console.log(`eventos ${data}`);
 
-    const toSet = [];
-    data.forEach((value) => {
-      const c = color(value.time);
-      toSet.push({ start: value.day, title: `Tiempo: ${value.time.toFixed(2)}`, color: c });
-    });
+      const toSet = [];
+      data.forEach((value) => {
+        const c = color(value.time);
+        toSet.push({
+          start: value.day,
+          title: `Tiempo: ${value.time.toFixed(3)}`,
+          extendedProps: { litros: value.litros.toFixed(2) },
+          color: c
+        });
+      });
 
-    setEvents(toSet);
+      setEvents(toSet);
+    }
   };
 
   const color = (time) => {
@@ -94,7 +115,7 @@ export default function Calendar() {
     <>
       <b>{eventInfo.timeText}</b>
       <i>{eventInfo.event.title}</i> <br />
-      <i>wii</i>
+      <i>Litros a regar: {eventInfo.event.extendedProps.litros} L</i>
     </>
   );
   return (

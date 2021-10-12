@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import PropTypes, { nominalTypeHack } from 'prop-types';
 import { useEffect } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 // material
@@ -57,8 +57,13 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }) {
       }}
     >
       <Box sx={{ px: 2.5, py: 3 }}>
-        <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
-          <Logo />
+        <Box
+          component={RouterLink}
+          to="/"
+          sx={{ display: 'inline-flex' }}
+          style={{ textDecoration: 'none', color: '#525252' }}
+        >
+          <Typography variant="h3">Neró</Typography>
         </Box>
       </Box>
 
