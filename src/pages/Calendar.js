@@ -1,8 +1,8 @@
 import { Icon } from '@iconify/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as moment from 'moment';
 import refreshFill from '@iconify/icons-eva/refresh-fill';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 // material
 import {
   Card,
@@ -29,17 +29,44 @@ import Page from '../components/Page';
 import { littersQuantityPerDay } from '../utils/helpers';
 import { supabase } from '../supabaseConfig';
 
-export default async function Calendar() {
+export default function Calendar() {
   const [events, setEvents] = useState([]);
+  const [parcelas, setParcelas] = useState([]);
+  const [cultivo, setCultivo] = useState(null);
+  const { id } = useParams();
+
+  useEffect(() => {
+    // buscar la parcela por id
+
+    const fetchData = async () => {
+      const { data, error } = await supabase
+        .from('LandLot')
+        .select(
+          `
+        id,
+        area,
+        irrigation_type,
+        sowing_date,
+        litters_applied,
+        Crop(id, period_total_days, radicular_capacity)
+        `
+        )
+        .eq('user', user.id)
+        .eq('id', id);
+
+      console.log(error);
+      setParcelas(data);
+    };
+    fetchData().then((r) => {
+      console.log(parcelas);
+    });
+  }, [id]);
+
   const handleDateClick = (arg) => {
     // bind with an arrow function
     alert(arg.dateStr);
   };
   const user = supabase.auth.user();
-  const today = moment();
-  const landLot = await supabase.from('LandLot').select();
-  const crop = await supabase.from('Crop').select();
-  const cropPhase = await supabase.from('CropPhase').select();
 
   const refresh = (event) => {
     const data = littersQuantityPerDay(
