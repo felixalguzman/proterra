@@ -74,6 +74,7 @@ function IrrigationForm() {
       name: ''
     },
     onSubmit: async (form) => {
+      const user = supabase.auth.session();
       const { data, error } = await supabase.from('LandLot').insert([
         {
           name: form.name,
@@ -81,7 +82,7 @@ function IrrigationForm() {
           crop: form.crop,
           sowing_date: form.sowingDate,
           irrigation_type: form.irrigatioType,
-          user: supabase.auth.user().id
+          user: user.user.id
         }
       ]);
       navigate('/dashboard', { replace: true });

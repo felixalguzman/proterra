@@ -1,7 +1,8 @@
 // material
-import { Box, Grid, Container, Typography, Button } from '@mui/material';
+import { Box, Grid, Container, Typography, Button, Link } from '@mui/material';
 import { useState, useEffect } from 'react';
 // components
+import { Link as RouterLink } from 'react-router-dom';
 import Page from '../components/Page';
 import {
   AppTasks,
@@ -40,6 +41,7 @@ export default function DashboardApp() {
 
       setLandLotsData(landLots.data);
     }
+
     getData();
   }, []);
 
@@ -65,7 +67,13 @@ export default function DashboardApp() {
           {landLotsData && landLotsData.length ? (
             landLotsData.map((parcela) => (
               <Grid item xs={12} sm={6}>
-                <AppWeeklySales name={parcela.name} status={parcela.status} />
+                <Link
+                  variant="subtitle2"
+                  component={RouterLink}
+                  to={`/dashboard/calendar/${parcela.id}`}
+                >
+                  <AppWeeklySales name={parcela.name} status={parcela.status} />
+                </Link>
               </Grid>
             ))
           ) : (
