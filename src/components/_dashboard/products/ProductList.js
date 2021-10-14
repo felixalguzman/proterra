@@ -70,7 +70,7 @@ function IrrigationForm() {
       caudal: '',
       plantDistance: '',
       surcosDistance: '',
-      sowingDate: '10-01-2021',
+      sowingDate: moment().format('yyyy-MM-DD'),
       name: ''
     },
     onSubmit: async (form) => {
@@ -106,7 +106,12 @@ function IrrigationForm() {
               label="Cultivo"
               onChange={handleChange}
             >
-              {cropData && cropData.map((crop) => <MenuItem value={crop.id}>{crop.name}</MenuItem>)}
+              {cropData &&
+                cropData.map((crop, i) => (
+                  <MenuItem key={i} value={crop.id}>
+                    {crop.name}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
           <FormControl fullWidth>
@@ -120,8 +125,10 @@ function IrrigationForm() {
               onChange={handleChange}
             >
               {irrigationTypeData &&
-                irrigationTypeData.map((irrigationType) => (
-                  <MenuItem value={irrigationType.id}>{irrigationType.name}</MenuItem>
+                irrigationTypeData.map((irrigationType, i) => (
+                  <MenuItem key={i} value={irrigationType.id}>
+                    {irrigationType.name}
+                  </MenuItem>
                 ))}
             </Select>
           </FormControl>

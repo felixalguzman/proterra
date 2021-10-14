@@ -25,20 +25,23 @@ import { supabase } from '../supabaseConfig';
 
 export default function DashboardApp() {
   const [landLotsData, setLandLotsData] = useState(null);
+  const userDB = supabase.auth.user();
   useState(() => {
     getLocation();
   });
 
   useEffect(() => {
     async function getData() {
-      const landLots = await supabase.from('LandLot').select(
-        `
+      const landLots = await supabase
+        .from('LandLot')
+        .select(
+          `
         id,
         name,
         Status(description)
         `
-      );
-
+        )
+        .eq('user', userDB.id);
       setLandLotsData(landLots.data);
     }
 
@@ -66,13 +69,16 @@ export default function DashboardApp() {
         <Grid container spacing={3}>
           {landLotsData && landLotsData.length ? (
             landLotsData.map((parcela) => (
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} key={parcela.id}>
                 <Link
                   variant="subtitle2"
                   component={RouterLink}
                   to={`/dashboard/calendar/${parcela.id}`}
                 >
-                  <AppWeeklySales name={parcela.name} status={parcela.Status.description} />
+                  <AppWeeklySales
+                    name={parcela.name}
+                    status={parcela.Status ? parcela.Status.description : 'Pendiente'}
+                  />
                 </Link>
               </Grid>
             ))

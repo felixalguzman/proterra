@@ -34,12 +34,13 @@ export default function Calendar() {
   const [parcela, setParcela] = useState(null);
   const [cultivo, setCultivo] = useState(null);
   const { id } = useParams();
+  const [kc, setKc] = useState(null);
 
   useEffect(() => {
     // buscar la parcela por id
 
     const fetchData = async () => {
-      const { data, error } = await supabase
+      const LandLot = await supabase
         .from('LandLot')
         .select(
           `
@@ -49,14 +50,21 @@ export default function Calendar() {
         sowing_date,
         litters_applied,
         Crop(period_total_days, radicular_capacity)
+        plantDistance
+        surcosDistance
         `
         )
         .eq('user', user.id)
         .eq('id', id);
 
-      console.log(error);
-      if (data && data.length > 0) setParcela(data[0]);
+      const cropConstant = await supabase.from('CropConstant').select().eq('id', id);
+
+      console.log(LandLot.error);
+      console.log(cropConstant.error);
+      if (LandLot.data && LandLot.data.length > 0) setParcela(LandLot.data[0]);
+      if (cropConstant.data && cropConstant.data.length > 0) setKc(cropConstant.data[0]);
     };
+    console.log('USER', supabase.auth.user());
     fetchData().then((r) => {
       refresh();
     });
@@ -75,20 +83,22 @@ export default function Calendar() {
   };
 
   const refresh = (event) => {
-    if (parcela) {
+    if (parcela && kc) {
       const days = parcela.Crop.period_total_days;
       const data = littersQuantityPerDay(
         {
-          kc: 2,
+          kc: kc.inicial,
           irrigationType: parcela.irrigation_type,
           area: parcela.area,
-          distanciamientoPlanta: 12,
-          distanciaSurco: 6
+          distanciamientoPlanta: parcela.plantDistance,
+          distanciaSurco: parcela.surcosDistance
         },
         parcela.sowing_date,
         days
       );
       console.log(`eventos ${data}`);
+      console.log(`DATA ${parcela}`);
+      console.log(`KC ${kc}`);
 
       const toSet = [];
       data.forEach((value) => {
