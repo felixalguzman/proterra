@@ -1,5 +1,6 @@
 import { Navigate, useRoutes } from 'react-router-dom';
 // layouts
+import { useEffect } from 'react';
 import DashboardLayout from './layouts/dashboard';
 import LogoOnlyLayout from './layouts/LogoOnlyLayout';
 //
@@ -11,10 +12,21 @@ import Blog from './pages/Blog';
 import User from './pages/User';
 import NotFound from './pages/Page404';
 import Calendar from './pages/Calendar';
+import { login, supabase } from './supabaseConfig';
 
 // ----------------------------------------------------------------------
 
 export default function Router() {
+  useEffect(() => {
+    const log = async () => {
+      if (supabase.auth.session() == null) {
+        await login('luisahiris.ea@gmail.com', 'ProTerra2021');
+      }
+    };
+
+    log();
+  });
+
   return useRoutes([
     {
       path: '/dashboard',

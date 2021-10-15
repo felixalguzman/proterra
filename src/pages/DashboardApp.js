@@ -4,20 +4,7 @@ import { useState, useEffect } from 'react';
 // components
 import { Link as RouterLink } from 'react-router-dom';
 import Page from '../components/Page';
-import {
-  AppTasks,
-  AppNewUsers,
-  AppBugReports,
-  AppItemOrders,
-  AppNewsUpdate,
-  AppWeeklySales,
-  AppOrderTimeline,
-  AppCurrentVisits,
-  AppWebsiteVisits,
-  AppTrafficBySite,
-  AppCurrentSubject,
-  AppConversionRates
-} from '../components/_dashboard/app';
+import { AppWeeklySales } from '../components/_dashboard/app';
 
 // ----------------------------------------------------------------------
 import { getLocation } from '../utils/helpers';
@@ -30,6 +17,22 @@ export default function DashboardApp() {
     getLocation();
   });
 
+  const description = (status) => {
+    switch (status) {
+      case 1:
+        return 'Pendiente';
+
+      case 2:
+        return 'En progreso';
+
+      case 3:
+        return 'Completado';
+
+      default:
+        return '';
+    }
+  };
+
   useEffect(() => {
     async function getData() {
       const landLots = await supabase
@@ -38,7 +41,7 @@ export default function DashboardApp() {
           `
         id,
         name,
-        Status(description)
+        Status
         `
         )
         .eq('user', userDB.id);
@@ -75,10 +78,7 @@ export default function DashboardApp() {
                   component={RouterLink}
                   to={`/dashboard/calendar/${parcela.id}`}
                 >
-                  <AppWeeklySales
-                    name={parcela.name}
-                    status={parcela.Status ? parcela.Status.description : 'Pendiente'}
-                  />
+                  <AppWeeklySales name={parcela.name} status={description(parcela.Status)} />
                 </Link>
               </Grid>
             ))

@@ -82,10 +82,10 @@ export default function Calendar() {
     }
   };
 
-  const refresh = (event) => {
+  const refresh = async (event) => {
     if (parcela && kc) {
       const days = parcela.Crop.period_total_days;
-      const data = littersQuantityPerDay(
+      const data = await littersQuantityPerDay(
         {
           kc: kc.inicial,
           irrigationType: parcela.irrigation_type,
@@ -96,9 +96,9 @@ export default function Calendar() {
         parcela.sowing_date,
         days
       );
-      console.log(`eventos ${data}`);
-      console.log(`DATA ${parcela}`);
-      console.log(`KC ${kc}`);
+      console.log(`eventos ${JSON.stringify(data)}`);
+      console.log(`DATA ${JSON.stringify(parcela)}`);
+      console.log(`KC ${JSON.stringify(kc)}`);
 
       const toSet = [];
       data.forEach((value) => {
@@ -117,7 +117,7 @@ export default function Calendar() {
 
   const color = (time) => {
     if (time < 0.01) return 'green';
-    if (time < 6) return 'yellow';
+    if (time < 6) return 'blue';
     return 'red';
   };
 
