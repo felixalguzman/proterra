@@ -64,10 +64,10 @@ export default function Calendar() {
       if (LandLot.data && LandLot.data.length > 0) setParcela(LandLot.data[0]);
       if (cropConstant.data && cropConstant.data.length > 0) setKc(cropConstant.data[0]);
     };
-    console.log('USER', supabase.auth.user());
-    fetchData().then((r) => {
-      refresh();
-    });
+    if (id)
+      fetchData().then((r) => {
+        refresh();
+      });
   }, [id]);
 
   const handleDateClick = (arg) => {
@@ -96,10 +96,6 @@ export default function Calendar() {
         parcela.sowing_date,
         days
       );
-      console.log(`eventos ${JSON.stringify(data)}`);
-      console.log(`DATA ${JSON.stringify(parcela)}`);
-      console.log(`KC ${JSON.stringify(kc)}`);
-
       const toSet = [];
       data.forEach((value) => {
         const c = color(value.time);
@@ -134,6 +130,9 @@ export default function Calendar() {
         <Stack direction="row" alignItems="right" justifyContent="space-between" mb={5}>
           <Button variant="contained" startIcon={<Icon icon={refreshFill} />} onClick={refresh}>
             Refresh
+          </Button>
+          <Button variant="contained" startIcon={<Icon icon={refreshFill} />} onClick={fillData}>
+            fill
           </Button>
         </Stack>
         <FullCalendar

@@ -37,7 +37,8 @@ export default function Router() {
         { path: 'user', element: <User /> },
         { path: 'products', element: <Products /> },
         { path: 'blog', element: <Blog /> },
-        { path: 'calendar/:id', element: <Calendar /> }
+        { path: 'calendar/:id', element: <Calendar /> },
+        { path: 'calendar', element: <Calendar /> }
       ]
     },
     {
