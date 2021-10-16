@@ -3,12 +3,14 @@ import { Link as RouterLink } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { Card, Stack, Link, Container, Typography } from '@mui/material';
 // layouts
+import { useEffect } from 'react';
 import AuthLayout from '../layouts/AuthLayout';
 // components
 import Page from '../components/Page';
 import { MHidden } from '../components/@material-extend';
 import { LoginForm } from '../components/authentication/login';
 import AuthSocial from '../components/authentication/AuthSocial';
+import { supabase } from '../supabaseConfig';
 
 // ----------------------------------------------------------------------
 
@@ -40,6 +42,14 @@ const ContentStyle = styled('div')(({ theme }) => ({
 // ----------------------------------------------------------------------
 
 export default function Login() {
+  useEffect(() => {
+    const logou = async () => {
+      await supabase.auth.signOut();
+    };
+
+    logou();
+  }, []);
+
   return (
     <RootStyle title="Login | Minimal-UI">
       <AuthLayout>

@@ -5,9 +5,9 @@ import { supabase } from '../supabaseConfig';
 let latitude;
 let longitude;
 
-export function littersQuantityPerDay(cultivo, sowingDate, periodTotalDays) {
+export async function littersQuantityPerDay(cultivo, sowingDate, periodTotalDays) {
   const dateEnd = moment(sowingDate).add(periodTotalDays, 'days');
-  const evo = evotranspiration(cultivo, sowingDate, dateEnd);
+  const evo = await evotranspiration(cultivo, sowingDate, dateEnd);
   let addition = 0;
   let time = 0;
   let caudalTotal = 0;
@@ -101,27 +101,27 @@ async function getTemps(day) {
   return null;
 }
 
-function evotranspiration(cultivo, dateStart, dateEnd) {
+async function evotranspiration(cultivo, dateStart, dateEnd) {
   const etos = [];
 
   const start = moment(dateStart);
   const end = moment(dateEnd);
   // Calcular eto
   while (start <= end) {
-    getTemps(start).then((temps) => {
-      if (temps) {
-        // en la bd la cosa de la radiacion
-        const eto = 0.0023 * (temps.avg + 17.8) * 1 * (temps.max - temps.min) ** 0.5;
+    // eslint-disable-next-line no-await-in-loop
+    const temps = await getTemps(start);
+    if (temps) {
+      // en la bd la cosa de la radiacion
+      const eto = 0.0023 * (temps.avg + 17.8) * 1 * (temps.max - temps.min) ** 0.5;
 
-        if (eto) {
-          etos.push({ eto, day: start.format('YYYY-MM-DD') });
-        } else {
-          console.log(`calcular con ${JSON.stringify(temps)}`);
-        }
+      if (eto) {
+        etos.push({ eto, day: start.format('YYYY-MM-DD') });
       } else {
-        console.log(`no hay temps de dia ${start}`);
+        console.log(`calcular con ${JSON.stringify(temps)}`);
       }
-    });
+    } else {
+      console.log(`no hay temps de dia ${start}`);
+    }
 
     start.add(1, 'days');
   }
@@ -257,7 +257,7 @@ export async function getData(datePlanted, daysToFinish, landLotId) {
           date: lastYearData[key].date,
           'wind-speed': lastYearData[key].windProm,
           precipitation: lastYearData[key].precipitation,
-          'air-temp': lastYearData[key].airTemperatureProm,
+          air_temp: lastYearData[key].airTemperatureProm,
           humidity: lastYearData[key].humidityProm,
           // latitud: latitude,
           // longitud: longitude,
@@ -282,7 +282,7 @@ export async function getData(datePlanted, daysToFinish, landLotId) {
             date: res[key].date,
             'wind-speed': res[key].windProm,
             precipitation: res[key].precipitation,
-            'air-temp': res[key].airTemperatureProm,
+            air_temp: res[key].airTemperatureProm,
             humidity: res[key].humidityProm,
             // latitud: latitude,
             // longitud: longitude,
