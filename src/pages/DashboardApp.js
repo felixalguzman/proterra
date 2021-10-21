@@ -1,54 +1,91 @@
 // material
-import { Box, Grid, Container, Typography, Button } from '@mui/material';
-import { useState } from 'react';
+import { Box, Grid, Container, Typography, Button, Link } from '@mui/material';
+import { useState, useEffect } from 'react';
 // components
+import { Link as RouterLink } from 'react-router-dom';
 import Page from '../components/Page';
-import {
-  AppTasks,
-  AppNewUsers,
-  AppBugReports,
-  AppItemOrders,
-  AppNewsUpdate,
-  AppWeeklySales,
-  AppOrderTimeline,
-  AppCurrentVisits,
-  AppWebsiteVisits,
-  AppTrafficBySite,
-  AppCurrentSubject,
-  AppConversionRates
-} from '../components/_dashboard/app';
+import { AppWeeklySales } from '../components/_dashboard/app';
 
 // ----------------------------------------------------------------------
-import { getLocation, getData } from '../utils/helpers';
+import { getLocation } from '../utils/helpers';
+import { supabase } from '../supabaseConfig';
 
 export default function DashboardApp() {
+  const [landLotsData, setLandLotsData] = useState(null);
+  const userDB = supabase.auth.user();
   useState(() => {
     getLocation();
   });
 
+  const description = (status) => {
+    switch (status) {
+      case 1:
+        return 'En progreso';
+
+      case 2:
+        return 'Completado';
+
+      case 3:
+        return 'Pendiente';
+
+      default:
+        return '';
+    }
+  };
+
+  useEffect(() => {
+    async function getData() {
+      const landLots = await supabase
+        .from('LandLot')
+        .select(
+          `
+        id,
+        name,
+        Status
+        `
+        )
+        .eq('user', userDB.id);
+      setLandLotsData(landLots.data);
+    }
+
+    getData();
+  }, []);
+
   return (
-    <Page title="ProTerra | Cuida del agua">
+    <Page title="Neró | Cuida del agua">
       <Container maxWidth="xl">
         <Box sx={{ pb: 5 }}>
           <Typography variant="h4">¡Bienvenid@!</Typography>
-          <Button
+          {/* <Button
             onClick={
               (e) =>
                 getData({
                   datePlanted: '2021-10-04',
                   daysToFinish: 24
-                }) /* precipitation('2021-09-29') */
+                }) // precipitation('2021-09-29')
             }
             variant="contained"
           >
             Buscar{' '}
-          </Button>
+          </Button> */}
         </Box>
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <AppWeeklySales />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          {landLotsData && landLotsData.length ? (
+            landLotsData.map((parcela) => (
+              <Grid item xs={12} sm={6} key={parcela.id}>
+                <Link
+                  variant="subtitle2"
+                  component={RouterLink}
+                  to={`/dashboard/calendar/${parcela.id}`}
+                >
+                  <AppWeeklySales name={parcela.name} status={description(parcela.Status)} />
+                </Link>
+              </Grid>
+            ))
+          ) : (
+            <Typography>No hay parcelas registradas</Typography>
+          )}
+          {/* <Grid item xs={12} sm={6} md={3}>
             <AppNewUsers />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -88,7 +125,7 @@ export default function DashboardApp() {
 
           <Grid item xs={12} md={6} lg={8}>
             <AppTasks />
-          </Grid>
+          </Grid> */}
         </Grid>
       </Container>
     </Page>

@@ -19,7 +19,7 @@ import {
   AlertTitle
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { supabase } from '../../../supabaseConfig';
+import { login } from '../../../supabaseConfig';
 
 // ----------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ export default function LoginForm() {
   });
 
   const handleLogin = async (email, pass) => {
-    const { error } = await supabase.auth.signIn({ email, password: pass });
+    const { error } = await login(email, pass);
     if (error) {
       setLoginError(error.message);
     } else {

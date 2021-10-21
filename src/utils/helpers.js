@@ -1,56 +1,29 @@
 import * as moment from 'moment';
 import { supabase } from '../supabaseConfig';
 // https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=19.478969&lon=-70.695968&altitude=4150
-// cropPhases = {
-//     inicial: {
-//         kc: 12,
-//         days: 9
-//     }, ...
-// }
 
 let latitude;
 let longitude;
 
-export function waterNeeds(cropPhases, sowingDate, cropPeriod, rainResponse) {
-  const totalNeeds = 0;
-  const today = moment();
-  const initialDay = today;
-  const rain = {
-    inicial: 0,
-    desarrollo: 0,
-    medio: 0,
-    final: 0,
-    total: 0
-  };
-
-  const { /* inicial, desarrollo, medio, final, */ currentPeriod, missingDays } = etapa(
-    cropPhases,
-    cropPeriod,
-    sowingDate
-  );
-
-  // crop's evapotranspiration
-
-  return { totalNeeds, rain };
-}
-
-// Litros por minutos
-
-function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
-  const evo = evotranspiration(cultivo, dateStart, dateEnd);
+export async function littersQuantityPerDay(cultivo, sowingDate, periodTotalDays) {
+  const dateEnd = moment(sowingDate).add(periodTotalDays, 'days');
+  const evo = await evotranspiration(cultivo, sowingDate, dateEnd);
   let addition = 0;
   let time = 0;
   let caudalTotal = 0;
   const result = [];
 
-  evo.forEach((value) => {
-    if (value.evo) {
+  console.log('EVO', evo);
+
+  evo.forEach((value, index) => {
+    console.log('value etc', evo[index].etc);
+    if (value.etc) {
       const data = {};
       data.day = value.day;
-      data.evo = value.evo;
+      data.etc = value.etc;
 
-      const missingLitters = evo.etc * cultivo.area;
-      if (cultivo.irrigationType === 'Aspersión') {
+      const et = value.etc * 15;
+      if (cultivo.irrigationType === 1) {
         addition = 0.3;
         // Se tiene que poner del usuario, el caudal de riego, aspersores
         const caudalDeRiego = 1;
@@ -58,7 +31,7 @@ function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         caudalTotal = cantidadAspersores * caudalDeRiego;
 
         data.caudalTotal = caudalTotal;
-      } else if (cultivo.irrigationType === 'Microaspersión') {
+      } else if (cultivo.irrigationType === 2) {
         addition = 0.15;
         // Se tiene que poner del usuario, el caudal de riego, aspersores
         const caudalDeRiego = 1;
@@ -67,11 +40,7 @@ function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         data.caudalTotal = caudalTotal;
       } else addition = 0.1;
 
-      // Hay que guardarlo
-      const litterRes = missingLitters + missingLitters * addition;
-      data.litros = litterRes;
-
-      if (cultivo.irrigationType === 'Goteo') {
+      if (cultivo.irrigationType === 3) {
         // todo por preguntar
 
         const { distanciamientoPlanta, distanciaSurco } = cultivo;
@@ -81,18 +50,18 @@ function littersQuantityPerDay(cultivo, dateStart, dateEnd) {
         const caudalDeRiego = 1;
         caudalTotal = result * caudalDeRiego;
         data.caudalTotal = caudalTotal;
-
-        const littersCapacity = result * 1000;
-        time = litterRes / littersCapacity;
-        data.time = time;
-      } else {
-        const irrigation = cultivo.area / 36;
-        const littersCapacity = irrigation * 1000;
-        time = litterRes / littersCapacity;
-        data.time = time;
       }
 
+      caudalTotal += caudalTotal * addition;
+
+      // Hay que guardarlo
+      data.litros = et;
+      time = et / caudalTotal;
+      data.time = time;
+
       result.push(data);
+    } else {
+      console.log('no hay evo de', value);
     }
   });
 
@@ -107,7 +76,7 @@ function evoTPorEtapa(cultivo) {
   for (let index = 0; index < etapas.length; index += 1) {
     const etapa = etapas[index];
 
-    const prep = lluvias[etapa.etapa];
+    const prep = (0)[etapa.etapa];
     const lluvia = prep.data.reduce((a, b) => a + b, 0);
 
     const evoT = evotranspiration(cultivo, etapa.dateStart, etapa.dateEnd);
@@ -117,27 +86,80 @@ function evoTPorEtapa(cultivo) {
   return result;
 }
 
-function evotranspiration(cultivo, dateStart, dateEnd) {
+// Min, Max, avg de fecha
+async function getTemps(day) {
+  const start = moment(day);
+
+  const { data, error } = await supabase
+    .from('RainRegisterViewProm')
+    .select('*')
+    .eq('date', `${start.format('MM-DD')}`)
+    .single();
+
+  // if (error) console.log(error);
+  // console.log(data);
+
+  if (data) return data;
+
+  return null;
+}
+
+const fetchCropPhases = async (id) => {
+  const { data, error } = await supabase.from('CropPhase').select().eq('cultivo_id', id);
+  console.log('CROPDATA', data);
+  return data;
+};
+
+async function evotranspiration(cultivo, dateStart, dateEnd) {
+  const cropPhases = await fetchCropPhases(cultivo.id);
+  console.log('cropcrop', cropPhases);
   const etos = [];
 
   const start = moment(dateStart);
   const end = moment(dateEnd);
   // Calcular eto
   while (start <= end) {
-    // en la bd buscar tMax, tMin, tMedia
-    const eto = 0.0023 * (1 + 17.8) * 1 * (1 * -1) ** 0.5;
-    etos.push({ eto, day: start.format('L') });
+    // const temps = await getTemps(start);
+    // eslint-disable-next-line no-await-in-loop
+    const currentKc = await kcPorEtapa(
+      cropPhases,
+      dateStart,
+      start.format('YYYY-MM-DD'),
+      cultivo.id
+    );
+    const exampleTemps = {
+      avg: Math.random() * (33 - 28) + 28,
+      max: 33,
+      min: 28
+    };
+
+    if (exampleTemps) {
+      // en la bd la cosa de la radiacion
+      const eto =
+        0.0023 * (exampleTemps.avg + 17.8) * 1 * (exampleTemps.max - exampleTemps.min) ** 0.5;
+
+      if (eto) {
+        etos.push({ eto, day: start.format('YYYY-MM-DD'), etc: eto * currentKc });
+      } else {
+        console.log(`calcular con ${JSON.stringify(exampleTemps)}`);
+      }
+    } else {
+      console.log(`no hay temps de dia ${start}`);
+    }
 
     start.add(1, 'days');
   }
+  // Se hara todo por día
   // const sum = etos.reduce((a, b) => a + b.eto, 0);
   // const avg = sum / etos.length || 0;
   // const daysDiff = moment(dateStart).diff(dateEnd, 'days');
   // const response = { etos, evo: avg * daysDiff * cultivo.kc };
-  etos.map((value) => {
-    value.evo = value.eto * cultivo.kc;
-    return value;
-  });
+  // etos.map(async (value) => {
+  //   value.etc = value.eto * currentKc;
+  //   console.log('CurrentKc', currentKc);
+  //   console.log('etc', value.etc);
+  //   // return value;
+  // });
   return etos;
 }
 
@@ -172,16 +194,33 @@ function periodoPorLluvia(cultivo) {
   return result;
 }
 
+export async function kcPorEtapa(cropPhases, datePlanted, currentDay, cultivoId) {
+  const etapas = await calculateEtapa({ cropPhases, datePlanted });
+  let currentEtapa = '';
+
+  etapas.forEach((etapaObj) => {
+    if (
+      moment(currentDay) >= moment(etapaObj.dateStart) &&
+      moment(currentDay) <= moment(etapaObj.dateEnd)
+    ) {
+      currentEtapa = etapaObj.etapa;
+    }
+  });
+
+  const cropKcs = await supabase.from('CropConstant').select().eq('cultivo_id', cultivoId);
+
+  return cropKcs.data[0][currentEtapa];
+}
+
 export function calculateEtapa(cultivo) {
   const { cropPhases, datePlanted } = cultivo;
-
-  const { inicial, desarrollo, medio, final } = cropPhases;
+  const { inicial, desarrollo, media, final } = cropPhases[0];
 
   const etapaDays = [
-    { etapa: 'inicial', dias: inicial.days },
-    { etapa: 'desarrollo', dias: desarrollo.days },
-    { etapa: 'medio', dias: medio.days },
-    { etapa: 'final', dias: final.days }
+    { etapa: 'inicial', dias: inicial },
+    { etapa: 'desarrollo', dias: desarrollo },
+    { etapa: 'media', dias: media },
+    { etapa: 'final', dias: final }
   ];
 
   const dateStart = moment(datePlanted);
@@ -189,7 +228,6 @@ export function calculateEtapa(cultivo) {
 
   for (let index = 0; index < etapaDays.length; index += 1) {
     const { etapa, dias } = etapaDays[index];
-
     const dateEnd = moment(dateStart).add(dias, 'days');
     etapas.push({ etapa, dias, dateStart: dateStart.format('L'), dateEnd: dateEnd.format('L') });
 
@@ -200,6 +238,7 @@ export function calculateEtapa(cultivo) {
   return etapas;
 }
 
+// check if sowing date is before today
 function etapa(cropPhases, cropPeriod, sowingDate) {
   const { inicial, desarrollo, medio, final } = cropPhases;
   const today = moment();
@@ -242,11 +281,10 @@ function etapa(cropPhases, cropPeriod, sowingDate) {
   return { inicial, desarrollo, medio, final, currentPeriod, missingDays };
 }
 
-export async function getData(cultivo) {
-  const { datePlanted, daysToFinish } = cultivo;
-
+// 2 years of rain data
+export async function getData(datePlanted, daysToFinish, landLotId) {
   const dataToInsert = [];
-
+  console.log('Buscando datos al pasado...');
   /* eslint-disable no-await-in-loop */
   for (let index = 1; index <= 2; index += 1) {
     const oldStart = moment(datePlanted).add(-index, 'year');
@@ -261,10 +299,11 @@ export async function getData(cultivo) {
           date: lastYearData[key].date,
           'wind-speed': lastYearData[key].windProm,
           precipitation: lastYearData[key].precipitation,
-          'air-temp': lastYearData[key].airTemperatureProm,
+          air_temp: lastYearData[key].airTemperatureProm,
           humidity: lastYearData[key].humidityProm,
-          latitud: latitude,
-          longitud: longitude
+          // latitud: latitude,
+          // longitud: longitude,
+          landLot_id: landLotId
         });
       }
     }
@@ -285,10 +324,11 @@ export async function getData(cultivo) {
             date: res[key].date,
             'wind-speed': res[key].windProm,
             precipitation: res[key].precipitation,
-            'air-temp': res[key].airTemperatureProm,
+            air_temp: res[key].airTemperatureProm,
             humidity: res[key].humidityProm,
-            latitud: latitude,
-            longitud: longitude
+            // latitud: latitude,
+            // longitud: longitude,
+            landLot_id: landLotId
           });
         }
       }
@@ -307,6 +347,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 1 request per call. Historical
 export async function precipitation(start) {
   // https://api.met.no/weatherapi/locationforecast/2.0/complete?
 
@@ -386,10 +427,7 @@ export async function precipitation(start) {
   return null;
 }
 
-function errors(err) {
-  console.warn(`ERROR(${err.code}): ${err.message}`);
-}
-
+// location
 function getCoords(pos) {
   const crd = pos.coords;
 
@@ -418,26 +456,26 @@ export function getLocation() {
   } else {
     alert('Sorry Not available!');
   }
+  // todo add to db
 }
+// export async function fillData(cultivo) {
+//   const { datePlanted, daysToFinish } = cultivo;
 
-export async function fillData(cultivo) {
-  const { datePlanted, daysToFinish } = cultivo;
+//   // hay que buscar en la base de datos, el PROMEDIO
+//   const dateStart = moment(datePlanted);
+//   const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
 
-  // hay que buscar en la base de datos, el PROMEDIO
-  const dateStart = moment(datePlanted);
-  const dateFinish = moment(datePlanted).add(daysToFinish, 'days');
+//   const start = moment(dateStart);
+//   const end = moment(dateFinish);
 
-  const start = moment(dateStart);
-  const end = moment(dateFinish);
+//   if (latitude && longitude) {
+//     while (start <= end) {
+//       const res = await precipitation(start.format());
 
-  if (latitude && longitude) {
-    while (start <= end) {
-      const res = await precipitation(start.format());
-
-      await sleep(2000);
-      start.add(10, 'days');
-    }
-  } else {
-    console.log('no hay latitud y longitud');
-  }
-}
+//       await sleep(2000);
+//       start.add(10, 'days');
+//     }
+//   } else {
+//     console.log('no hay latitud y longitud');
+//   }
+// }

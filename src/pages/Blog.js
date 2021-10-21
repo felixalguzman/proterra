@@ -25,19 +25,25 @@ export default function Blog() {
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            Blog
+            Pronóstico Semanal
           </Typography>
-          <Button
+          {/* <Button
             variant="contained"
             component={RouterLink}
             to="#"
             startIcon={<Icon icon={plusFill} />}
           >
             New Post
-          </Button>
+          </Button> */}
         </Stack>
+        <div>
+          <img
+            src="https://www.theweather.com/wimages/foto6472cecbd5aca7b0906539e3b1663fd9.png"
+            alt="clima"
+          />
+        </div>
 
-        <Stack mb={5} direction="row" alignItems="center" justifyContent="space-between">
+        {/* <Stack mb={5} direction="row" alignItems="center" justifyContent="space-between">
           <BlogPostsSearch posts={POSTS} />
           <BlogPostsSort options={SORT_OPTIONS} />
         </Stack>
@@ -46,7 +52,7 @@ export default function Blog() {
           {POSTS.map((post, index) => (
             <BlogPostCard key={post.id} post={post} index={index} />
           ))}
-        </Grid>
+        </Grid> */}
       </Container>
     </Page>
   );
