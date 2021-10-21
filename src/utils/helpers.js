@@ -13,13 +13,16 @@ export async function littersQuantityPerDay(cultivo, sowingDate, periodTotalDays
   let caudalTotal = 0;
   const result = [];
 
-  evo.forEach((value) => {
+  console.log('EVO', evo);
+
+  evo.forEach((value, index) => {
+    console.log('value etc', evo[index].etc);
     if (value.etc) {
       const data = {};
       data.day = value.day;
       data.etc = value.etc;
 
-      const et = value.etc * cultivo.area;
+      const et = value.etc * 15;
       if (cultivo.irrigationType === 1) {
         addition = 0.3;
         // Se tiene que poner del usuario, el caudal de riego, aspersores
@@ -73,7 +76,7 @@ function evoTPorEtapa(cultivo) {
   for (let index = 0; index < etapas.length; index += 1) {
     const etapa = etapas[index];
 
-    const prep = lluvias[etapa.etapa];
+    const prep = (0)[etapa.etapa];
     const lluvia = prep.data.reduce((a, b) => a + b, 0);
 
     const evoT = evotranspiration(cultivo, etapa.dateStart, etapa.dateEnd);
@@ -101,23 +104,44 @@ async function getTemps(day) {
   return null;
 }
 
+const fetchCropPhases = async (id) => {
+  const { data, error } = await supabase.from('CropPhase').select().eq('cultivo_id', id);
+  console.log('CROPDATA', data);
+  return data;
+};
+
 async function evotranspiration(cultivo, dateStart, dateEnd) {
+  const cropPhases = await fetchCropPhases(cultivo.id);
+  console.log('cropcrop', cropPhases);
   const etos = [];
 
   const start = moment(dateStart);
   const end = moment(dateEnd);
   // Calcular eto
   while (start <= end) {
+    // const temps = await getTemps(start);
     // eslint-disable-next-line no-await-in-loop
-    const temps = await getTemps(start);
-    if (temps) {
+    const currentKc = await kcPorEtapa(
+      cropPhases,
+      dateStart,
+      start.format('YYYY-MM-DD'),
+      cultivo.id
+    );
+    const exampleTemps = {
+      avg: Math.random() * (33 - 28) + 28,
+      max: 33,
+      min: 28
+    };
+
+    if (exampleTemps) {
       // en la bd la cosa de la radiacion
-      const eto = 0.0023 * (temps.avg + 17.8) * 1 * (temps.max - temps.min) ** 0.5;
+      const eto =
+        0.0023 * (exampleTemps.avg + 17.8) * 1 * (exampleTemps.max - exampleTemps.min) ** 0.5;
 
       if (eto) {
-        etos.push({ eto, day: start.format('YYYY-MM-DD') });
+        etos.push({ eto, day: start.format('YYYY-MM-DD'), etc: eto * currentKc });
       } else {
-        console.log(`calcular con ${JSON.stringify(temps)}`);
+        console.log(`calcular con ${JSON.stringify(exampleTemps)}`);
       }
     } else {
       console.log(`no hay temps de dia ${start}`);
@@ -130,10 +154,12 @@ async function evotranspiration(cultivo, dateStart, dateEnd) {
   // const avg = sum / etos.length || 0;
   // const daysDiff = moment(dateStart).diff(dateEnd, 'days');
   // const response = { etos, evo: avg * daysDiff * cultivo.kc };
-  etos.map((value) => {
-    value.etc = value.eto * cultivo.kc;
-    return value;
-  });
+  // etos.map(async (value) => {
+  //   value.etc = value.eto * currentKc;
+  //   console.log('CurrentKc', currentKc);
+  //   console.log('etc', value.etc);
+  //   // return value;
+  // });
   return etos;
 }
 
@@ -168,16 +194,33 @@ function periodoPorLluvia(cultivo) {
   return result;
 }
 
+export async function kcPorEtapa(cropPhases, datePlanted, currentDay, cultivoId) {
+  const etapas = await calculateEtapa({ cropPhases, datePlanted });
+  let currentEtapa = '';
+
+  etapas.forEach((etapaObj) => {
+    if (
+      moment(currentDay) >= moment(etapaObj.dateStart) &&
+      moment(currentDay) <= moment(etapaObj.dateEnd)
+    ) {
+      currentEtapa = etapaObj.etapa;
+    }
+  });
+
+  const cropKcs = await supabase.from('CropConstant').select().eq('cultivo_id', cultivoId);
+
+  return cropKcs.data[0][currentEtapa];
+}
+
 export function calculateEtapa(cultivo) {
   const { cropPhases, datePlanted } = cultivo;
-
-  const { inicial, desarrollo, medio, final } = cropPhases;
+  const { inicial, desarrollo, media, final } = cropPhases[0];
 
   const etapaDays = [
-    { etapa: 'inicial', dias: inicial.days },
-    { etapa: 'desarrollo', dias: desarrollo.days },
-    { etapa: 'medio', dias: medio.days },
-    { etapa: 'final', dias: final.days }
+    { etapa: 'inicial', dias: inicial },
+    { etapa: 'desarrollo', dias: desarrollo },
+    { etapa: 'media', dias: media },
+    { etapa: 'final', dias: final }
   ];
 
   const dateStart = moment(datePlanted);
@@ -185,7 +228,6 @@ export function calculateEtapa(cultivo) {
 
   for (let index = 0; index < etapaDays.length; index += 1) {
     const { etapa, dias } = etapaDays[index];
-
     const dateEnd = moment(dateStart).add(dias, 'days');
     etapas.push({ etapa, dias, dateStart: dateStart.format('L'), dateEnd: dateEnd.format('L') });
 

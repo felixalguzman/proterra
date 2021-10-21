@@ -26,7 +26,7 @@ import timeGrid from '@fullcalendar/timegrid'; // a plugin!
 import interactionPlugin from '@fullcalendar/interaction'; // needed for dayClick
 
 import Page from '../components/Page';
-import { littersQuantityPerDay, getData } from '../utils/helpers';
+import { littersQuantityPerDay, getData, kcPorEtapa } from '../utils/helpers';
 import { supabase } from '../supabaseConfig';
 
 export default function Calendar() {
@@ -38,7 +38,6 @@ export default function Calendar() {
 
   useEffect(() => {
     // buscar la parcela por id
-
     const fetchData = async () => {
       const LandLot = await supabase
         .from('LandLot')
@@ -64,6 +63,7 @@ export default function Calendar() {
       if (LandLot.data && LandLot.data.length > 0) setParcela(LandLot.data[0]);
       if (cropConstant.data && cropConstant.data.length > 0) setKc(cropConstant.data[0]);
     };
+
     if (id)
       fetchData().then((r) => {
         refresh();
@@ -87,6 +87,7 @@ export default function Calendar() {
       const days = parcela.Crop.period_total_days;
       const data = await littersQuantityPerDay(
         {
+          id: parcela.id,
           kc: kc.inicial,
           irrigationType: parcela.irrigation_type,
           area: parcela.area,
@@ -96,12 +97,13 @@ export default function Calendar() {
         parcela.sowing_date,
         days
       );
+      // console.log('DATA', data);
       const toSet = [];
       data.forEach((value) => {
         const c = color(value.time);
         toSet.push({
           start: value.day,
-          title: `Tiempo: ${value.time.toFixed(3)}`,
+          title: `Tiempo: ${value.time.toFixed(3)} h`,
           extendedProps: { litros: value.litros.toFixed(2) },
           color: c
         });
@@ -113,7 +115,7 @@ export default function Calendar() {
 
   const color = (time) => {
     if (time < 0.01) return 'green';
-    if (time < 6) return 'blue';
+    if (time < 6) return '#219FD6';
     return 'red';
   };
 
@@ -125,15 +127,15 @@ export default function Calendar() {
     </>
   );
   return (
-    <Page title="User | Minimal-UI">
+    <Page title="Calendar | Neró">
       <Container>
         <Stack direction="row" alignItems="right" justifyContent="space-between" mb={5}>
           <Button variant="contained" startIcon={<Icon icon={refreshFill} />} onClick={refresh}>
             Refresh
           </Button>
-          <Button variant="contained" startIcon={<Icon icon={refreshFill} />} onClick={fillData}>
+          {/* <Button variant="contained" startIcon={<Icon icon={refreshFill} />} onClick={fillData}>
             fill
-          </Button>
+          </Button> */}
         </Stack>
         <FullCalendar
           plugins={[dayGridPlugin, timeGrid, interactionPlugin]}

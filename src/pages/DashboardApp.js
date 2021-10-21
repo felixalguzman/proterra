@@ -20,13 +20,13 @@ export default function DashboardApp() {
   const description = (status) => {
     switch (status) {
       case 1:
-        return 'Pendiente';
-
-      case 2:
         return 'En progreso';
 
-      case 3:
+      case 2:
         return 'Completado';
+
+      case 3:
+        return 'Pendiente';
 
       default:
         return '';
